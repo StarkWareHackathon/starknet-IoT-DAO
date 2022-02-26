@@ -10,30 +10,23 @@ const pinataSDK = require('@pinata/sdk');
 const ethWallet = require('ethereumjs-wallet');
 const { ethers } = require("ethers");
 const fs = require('fs');
-const { ApolloClient, HttpLink, DefaultOptions, InMemoryCache } = require('@apollo/client/core');
 const fetch = require('cross-fetch');
 const axios = require('axios');
-const gql = require('graphql-tag');
-const protobuf = require("protobufjs");
 const pinata = pinataSDK(process.env.PERSONAL_PINATA_PUBLIC_KEY, process.env.PERSONAL_PINATA_SECRET_KEY);
 const projectID = process.env.PROJECT_ID;
-const app = express(); 
 const testNet = process.env.TEST_NET;
 const signingKey = process.env.PRIVATE_KEY;
 
+const app = express(); 
 const upload = multer({dest: 'uploads/'})
 
 let web3;
 let chainId;
 let useLocalData = true;
-//swap between Kovan and Iotex testnets
+//swap between Kovan
 if(testNet=="KOVAN"){
   web3 = new Web3(new Web3.providers.HttpProvider(`https://kovan.infura.io/v3/${projectID}`));
   chainId = 42;
-  }
-else{
-  web3 = new Web3(new Web3.providers.HttpProvider(`https://babel-api.testnet.iotex.io`));
-  chainId = 4690;
   }
 
 const port = process.env.SERVER_PORT || 6000;
@@ -58,27 +51,14 @@ app.get('/nft-store/:address', async (req, res) => {
 //initial check called in useEffect to see if address has registered device
 app.get('/init-device-check/:address', async (req, res) => {
   const address = req.params.address;
-  if(useLocalData){
-    let deviceExist = address in addressIMEI;
-    if (!deviceExist){
-      console.log('no devices')
-      return res.send({IMEI : ""})
-    }
-    else{
-      const deviceIMEI = addressIMEI[address];
-      return res.send({IMEI : deviceIMEI})
-    }
+  let deviceExist = address in addressIMEI;
+  if (!deviceExist){
+    console.log('no devices')
+    return res.send({IMEI : ""})
   }
   else{
-    object = await dataFetch(address.toLowerCase(), true)
-    if (object.length===0){
-      console.log('no devices')
-      return res.send({IMEI : ""})
-    }
-    else{
-      const deviceIMEI = object[0].id;
-      return res.send({IMEI : deviceIMEI})
-    }
+    const deviceIMEI = addressIMEI[address];
+    return res.send({IMEI : deviceIMEI})
   }
 });
 
@@ -101,7 +81,6 @@ app.get('/user-nfts/:address', async (req, res) => {
     
     return res.send({success : true, results : tokenURIs, start : start});
   }
- 
 });
 
 //used to render all NFTs for all Dao holdings
@@ -161,169 +140,93 @@ app.get('/mint/:address', async (req, res) => {
   let recordsData, timestamp;
   let score = 0;
   let index =0;
-
-  if(useLocalData){
-    let deviceExist = address in addressIMEI;
-    if (!deviceExist){
-      return res.send({success : false, reason : "not enough records for this"})
-    }
-    else{
-      const deviceIMEI = addressIMEI[address];
-      fs.readFile('./backupData.json', 'utf8', async (err, data) => {
-
-        if (err) {
-            console.log(`Error reading file from disk: ${err}`);
-            return res.send({success : false, reason : "error reading json data"})
-        } else {
-    
-            // parse JSON string to JSON object
-            const dataObj = JSON.parse(data);
-    
-           const timestamps = dataObj['timestamps'];
-           while(index < 400 && timestamps[index]< start){
-               index++;
-           }
-           console.log(`index is ${index} and runs is ${runs}`);
-           if(index + Number(runs) >= 400){
-             console.log('in here')
-            return res.send({success : false, reason : "not enough records for this"})
-           }
-           else {
-             timestamp = timestamps[index + Number(runs)-1];
-             recordsData = dataObj[deviceIMEI].slice(index, index+runs);
-            }
-            recordsData.map((record, index) =>{
-              let k = accLevels.length -1;
-              let flag = false;
-              while(!flag && k >0){
-                if(record >= accLevels[k]){
-                  flag = true;
-                  score += penLevels[k]
-                }
-                k--;
-              }
-            })
-
-            const average = Math.round(score*100/runs)/100;
-            const ratingLevels = await DAOInstance.methods.getRatings().call();
-            let ratingLabels = Array(ratingLevels.length);
-            for (let j =0; j<ratingLevels.length; j++){
-              ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
-            }
-            console.log(ratingLabels);
-            console.log(ratingLevels);
-            let rating = ratingLabels[ratingLabels.length-1];
-            let level = ratingLevels.length;
-            let indexLevel = 1;
-            let setLevel = false;
-            while (indexLevel < ratingLevels.length){
-              if(average > ratingLevels[level-indexLevel]){
-                level = indexLevel;
-                rating = ratingLabels[ratingLevels.length - indexLevel];
-                indexLevel = ratingLevels.length;
-                setLevel = true;
-              }
-              indexLevel++;
-            }
-            if(!setLevel){
-              rating = ratingLabels[0];
-            }
-
-            //create and upload JSON data for token URI
-            let tokenJSON = {};
-            tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
-            tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
-            tokenJSON['image'] = imageURI;
-            tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
-
-            const tokenFile = await uploadJSONPinata(tokenJSON);
-            const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
-
-            console.log(`${nonce} and ${address} and ${Verify.networks[chainId].address} and ${timestamp} and ${tokenURI}`)
-
-            const signature = await verifyNFTInfo(nonce, address, Verify.networks[chainId].address, timestamp, tokenURI, 0);
-
-            console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
-
-
-            res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});
-            
-        }
-    
-    });
-    }
+  let deviceExist = address in addressIMEI;
+  if (!deviceExist){
+    return res.send({success : false, reason : "not enough records for this"})
   }
   else{
-    //get device IMEI and address and load protobuf helpers
-    const deviceRes = await dataFetch(address.toLowerCase(), true);
-    const deviceIMEI = deviceRes[0].id;
-    const deviceAddress = deviceRes[0].address;
-    const pebbleProtoDef = await protobuf.load("pebble.proto");
-    const SensorData = pebbleProtoDef.lookupType('SensorData');
-    
-    //retrieve records and calculate score
-    recordsData = await recordsFetch(deviceIMEI, start, runs);
+    const deviceIMEI = addressIMEI[address];
+    fs.readFile('./backupData.json', 'utf8', async (err, data) => {
 
-    if(recordsData.length < 100){
-      return res.send({success : false, reason : "not enough records for this"})
-    }
-    recordsData.map((record, index) =>{
-      timestamp = record.timestamp;
-      const encodedTelemetry = record.raw.replace(/0x/g, '');
-      const telemetry = SensorData.decode(Buffer.from(encodedTelemetry,"hex"));
-      const accelerometer = telemetry.accelerometer.slice(0,-1);
-      const totalAccel = Math.floor(Math.sqrt(Math.pow(accelerometer[0], 2) + Math.pow(accelerometer[1], 2)));
-      let k = accLevels.length -1;
-      let flag = false;
-      while(!flag && k >0){
-        if(totalAccel >= accLevels[k]){
-          flag = true;
-          score += penLevels[k]
-          //console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel} and timestamp : ${record.timestamp}`);
-        }
-        k--;
-      }
-    })
+      if (err) {
+          console.log(`Error reading file from disk: ${err}`);
+          return res.send({success : false, reason : "error reading json data"})
+      } else {
   
-  //calculate average, rating
-  const average = Math.round(score*100/runs)/100;
-  const ratingLevels = await DAOInstance.methods.getRatings().call();
-  let ratingLabels = Array(ratingLevels.length);
-  for (let j =0; j<ratingLevels.length; j++){
-    ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
-  }
-  let rating = ratingLabels[ratingLabels.length-1];
-  let level = ratingLevels.length;
-  let indexLevel = 1
-  while (indexLevel < ratingLevels.length){
-    if(average > ratingLevels[level-indexLevel]){
-      level = indexLevel;
-      rating = ratingLabels[indexLevel];
-      indexLevel = ratingLevels.length;
+          // parse JSON string to JSON object
+          const dataObj = JSON.parse(data);
+  
+          const timestamps = dataObj['timestamps'];
+          while(index < 400 && timestamps[index]< start){
+              index++;
+          }
+          console.log(`index is ${index} and runs is ${runs}`);
+          if(index + Number(runs) >= 400){
+            console.log('in here')
+          return res.send({success : false, reason : "not enough records for this"})
+          }
+          else {
+            timestamp = timestamps[index + Number(runs)-1];
+            recordsData = dataObj[deviceIMEI].slice(index, index+runs);
+          }
+          recordsData.map((record, index) =>{
+            let k = accLevels.length -1;
+            let flag = false;
+            while(!flag && k >0){
+              if(record >= accLevels[k]){
+                flag = true;
+                score += penLevels[k]
+              }
+              k--;
+            }
+          })
+
+          const average = Math.round(score*100/runs)/100;
+          const ratingLevels = await DAOInstance.methods.getRatings().call();
+          let ratingLabels = Array(ratingLevels.length);
+          for (let j =0; j<ratingLevels.length; j++){
+            ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
+          }
+          console.log(ratingLabels);
+          console.log(ratingLevels);
+          let rating = ratingLabels[ratingLabels.length-1];
+          let level = ratingLevels.length;
+          let indexLevel = 1;
+          let setLevel = false;
+          while (indexLevel < ratingLevels.length){
+            if(average > ratingLevels[level-indexLevel]){
+              level = indexLevel;
+              rating = ratingLabels[ratingLevels.length - indexLevel];
+              indexLevel = ratingLevels.length;
+              setLevel = true;
+            }
+            indexLevel++;
+          }
+          if(!setLevel){
+            rating = ratingLabels[0];
+          }
+
+          //create and upload JSON data for token URI
+          let tokenJSON = {};
+          tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
+          tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
+          tokenJSON['image'] = imageURI;
+          tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
+
+          const tokenFile = await uploadJSONPinata(tokenJSON);
+          const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
+
+          console.log(`${nonce} and ${address} and ${Verify.networks[chainId].address} and ${timestamp} and ${tokenURI}`)
+
+          const signature = await verifyNFTInfo(nonce, address, Verify.networks[chainId].address, timestamp, tokenURI, 0);
+
+          console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
+
+          res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});  
+        }
+      });
     }
-    indexLevel++;
-  }
-
-  //create and upload JSON data for token URI
-  let tokenJSON = {};
-  tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
-  tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
-  tokenJSON['image'] = imageURI;
-  tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
-
-  const tokenFile = await uploadJSONPinata(tokenJSON);
-  const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
-
-  console.log(`${nonce} and ${address} and ${Verify.networks[chainId].address} and ${timestamp} and ${tokenURI}`)
-
-  const signature = await verifyNFTInfo(nonce, address, Verify.networks[chainId].address, timestamp, tokenURI, 0);
-
-  console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
-
-
-  res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});
-  }
-})
+  })
 
 //route to upload images, called in the beginning of mint function client side
 app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
@@ -363,61 +266,6 @@ app.get('/dao-join-update/:address', async (req, res) => {
   return res.send({success : true, level : costs.length-level+1, timeStamp : timeStamp, tokenId : tokenIds[tokenIds.length-1], r : signature.r, s : signature.s, v : signature.v});
   
 })
-
-//graphQL query to fetch devices
-async function dataFetch(Address, owner) {
-  const client = new ApolloClient({
-      link: new HttpLink({
-          fetch,
-          uri: 'https://subgraph.iott.network/subgraphs/name/iotex/pebble-subgraph',
-      }),
-      cache: new InMemoryCache()
-  });
-
-  const queryString = owner ? "owner" : "address" 
-  const queryResult = await client.query({
-      query: gql`
-      {
-          devices (where : {${queryString} : "${Address}"}){
-            id
-            name
-            address
-            firmware
-            lastDataTime
-            data
-            config
-            owner
-          }
-        }
-      `,
-  });
-
-  return queryResult.data.devices
-}
-
-//graphQL query to fetch records
-async function recordsFetch(IMEI, start, amount) {
-  const client = new ApolloClient({
-      link: new HttpLink({
-          fetch,
-          uri: 'https://subgraph.iott.network/subgraphs/name/iotex/pebble-subgraph',
-      }),
-      cache: new InMemoryCache()
-  });
- 
-  const queryResult = await client.query({
-      query: gql`
-      {
-        deviceRecords(where: { imei: "${IMEI}" , timestamp_gt :  ${start}}, orderBy : timestamp, first : ${amount}) {
-          raw
-          timestamp          
-      }
-        }
-      `,
-  });
-
-  return queryResult.data.deviceRecords
-}
 
 //helpers for uploading image and JSON to Pinata through API for image URI and token URI
 async function uploadImagePinata(file){
