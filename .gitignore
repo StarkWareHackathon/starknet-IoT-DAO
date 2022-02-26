@@ -1,0 +1,10 @@
+artifacts
+cache
+node_modules
+.env
+coverage
+coverage.json
+typechain
+deployments/*
+TestToken.sol
+
