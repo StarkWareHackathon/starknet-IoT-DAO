@@ -1,6 +1,6 @@
-const express = require('express'); //Line 1
-const app = express(); //Line 2
-const port = process.env.PORT || 5000; //Line 3
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 6000;
 const {exec} = require('child_process');
 const fs = require('fs');
 const EC = require('elliptic').ec;
@@ -10,7 +10,7 @@ const keccak256 = require('js-sha3').keccak256;
 function getAddress () {
     console.log('here is the key');
     const ec = new EC('secp256k1');
-    const compKey = fs.readFileSync('./pebble-simulator/pubKey_compressed', {encoding : 'utf8'});
+    const compKey = fs.readFileSync('./data-simulator/pubKey_compressed', {encoding : 'utf8'});
     
     // Decode public key
     const key = ec.keyFromPublic(compKey, 'hex');
@@ -43,7 +43,7 @@ app.get('/express_backend', (req, res) => {
       child.stderr.on('data', (data) => {
         console.error(`child stderr:\n${data}`);
       }); */
-  res.send({ express: 'Welcome to IoTeX EPA Simulator dApp!'}); 
+  res.send({ express: 'Welcome to Starknet IoT DAO!'}); 
 });
 
 app.get('/get_address', (req, res) => {
@@ -52,7 +52,7 @@ app.get('/get_address', (req, res) => {
         console.log('here in read data');
         var dataLog = fs.readFileSync('./pebble.dat').toString().split("\n");
         const stringforAddr = dataLog[0];
-        var keyFile = fs.readFileSync('./pebble-simulator/privKey').toString().split("\n");
+        var keyFile = fs.readFileSync('./data-simulator/privKey').toString().split("\n");
         const keyToSave = keyFile[0].trim();
         res.send({currentAddr : addressEth, firstLine : stringforAddr, privKey : keyToSave});
     }
@@ -62,17 +62,17 @@ app.get('/get_address', (req, res) => {
 });
 
 app.get('/run_simulator', (req, res) => {
-    var data = fs.readFileSync('./pebble-simulator/simulator.sh').toString().split("\n");
+    var data = fs.readFileSync('./data-simulator/simulator.sh').toString().split("\n");
     data[6] = `TargetMax=${req.query.TargetMax}`;
     data[7] = `TargetMin=${req.query.TargetMin}`;
     data[68] = `CountPkg=${req.query.runs}`;
     var text = data.join("\n");
-    fs.writeFile('./pebble-simulator/simulator.sh', text, function (err) {
+    fs.writeFile('./data-simulator/simulator.sh', text, function (err) {
         if (err) return console.log(err);
       });
     
 
-    const child = exec('bash ./pebble-simulator/simulator.sh');
+    const child = exec('bash ./data-simulator/simulator.sh');
     
     child.stdout.on('data', (data) => {
         console.log(`child stdout:\n${data}`);
@@ -86,21 +86,21 @@ app.get('/run_simulator', (req, res) => {
 })
 
 app.get('/run_simulator_verify', (req, res) => {
-    fs.writeFile('./pebble-simulator/privKeyVerify', req.query.PrivKey, function (err) {
+    fs.writeFile('./data-simulator/privKeyVerify', req.query.PrivKey, function (err) {
         if (err) return console.log(err);
       });
     
-    var data = fs.readFileSync('./pebble-simulator/simulatorVerify.sh').toString().split("\n");
+    var data = fs.readFileSync('./data-simulator/simulatorVerify.sh').toString().split("\n");
     data[6] = `TargetMax=${req.query.TargetMax}`;
     data[7] = `TargetMin=${req.query.TargetMin}`;
     data[61] = `START=${req.query.Start}`;
     data[62] = `DELTA=${req.query.Delta}`;
     var text = data.join("\n");
-    fs.writeFile('./pebble-simulator/simulatorVerify.sh', text, function (err) {
+    fs.writeFile('./data-simulator/simulatorVerify.sh', text, function (err) {
         if (err) return console.log(err);
       });
     
-    const child = exec('bash ./pebble-simulator/simulatorVerify.sh');
+    const child = exec('bash ./data-simulator/simulatorVerify.sh');
     
     child.stdout.on('data', (data) => {
         console.log(`child stdout:\n${data}`);
