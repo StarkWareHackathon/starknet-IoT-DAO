@@ -1,4 +1,4 @@
-import React, {createContext, useState, useContext} from 'react';
+import React, { createContext, useState, useContext } from 'react';
 import { Router, Location, Redirect } from '@reach/router';
 import ScrollToTopBtn from './menu/scrollToTop';
 import Header from './menu/header';
@@ -8,11 +8,12 @@ import Mint from './pages/mint';
 
 
 
-
 import { createGlobalStyle } from 'styled-components';
 import Wallet from './pages/wallet';
 import Collection from './pages/collection';
 import Holdings from './pages/holdings';
+
+import PebbleContextProvider from '../state/PebbleContextProvider';
 
 const GlobalStyles = createGlobalStyle`
   :root {
@@ -20,7 +21,7 @@ const GlobalStyles = createGlobalStyle`
   }
 `;
 export const ScrollTop = ({ children, location }) => {
-  React.useEffect(() => window.scrollTo(0,0), [location])
+  React.useEffect(() => window.scrollTo(0, 0), [location])
   return children
 }
 
@@ -39,34 +40,30 @@ const PosedRouter = ({ children }) => (
   </Location>
 );
 
-export const AccountContext = createContext({});
 
-const App=()=> {
-  const [globalAccount, setGlobalAccount] = useState("");
-  const [globalActive, setGlobalActive] = useState(false);
-  const [globalChainId, setGlobalChainId] = useState(0)
+const App = () => {
 
   return (
     <div className="wrapper">
       <GlobalStyles />
-      <AccountContext.Provider path ="/" value={{globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId}}>
-        <Header/>
-          <PosedRouter>
-            <ScrollTop path="/">
-              
-              <Landing exact path="/">
-                <Redirect to="/landing" />
-              </Landing>
-              
-              <Collection path="/profile" />
-              <Holdings path="/holdings" />
-              <Mint path="/mint" />
-              
-              </ScrollTop>
-          </PosedRouter>
-        </AccountContext.Provider>
+      <PebbleContextProvider>
+        <Header />
+        <PosedRouter>
+          <ScrollTop path="/">
+
+            <Landing exact path="/">
+              <Redirect to="/landing" />
+            </Landing>
+
+            <Collection path="/profile" />
+            <Holdings path="/holdings" />
+            <Mint path="/mint" />
+
+          </ScrollTop>
+        </PosedRouter>
+      </PebbleContextProvider>
       <ScrollToTopBtn />
-    
+
     </div>
   );
 }
