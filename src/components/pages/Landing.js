@@ -1,4 +1,4 @@
-import React, {useState, useContext, useEffect} from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import Particle from '../components/Particle';
 import SliderMainParticle from '../components/SliderMainParticle';
 
@@ -8,7 +8,7 @@ import FeatureBox from '../components/FeatureBox';
 
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from '@web3-react/injected-connector'
-import { AccountContext } from '../App';
+import { AccountContext } from '../../state/contexts/AccountContext';
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader .logo .d-block{
@@ -115,17 +115,17 @@ const Landing = () => {
     supportedChainIds: [1, 3, 4, 5, 42, 4690],
   })
 
-const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
+  const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
-const {globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId} = useContext(AccountContext);
+  const { globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId } = useContext(AccountContext);
 
-useEffect(() => {
-  setGlobalAccount(account);
-  setGlobalActive(active);
-  setGlobalChainId(chainId);
-}, [account, active, chainId])
+  useEffect(() => {
+    setGlobalAccount(account);
+    setGlobalActive(active);
+    setGlobalChainId(chainId);
+  }, [account, active, chainId])
 
-async function connect() {
+  async function connect() {
     try {
       await activate(injected)
     } catch (ex) {
@@ -140,74 +140,75 @@ async function connect() {
       console.log(ex)
     }
   }
-  
-  return(
-    <div>
-    <GlobalStyles />
-        <section className="jumbotron no-bg" style={{backgroundImage: `url(${'./img/background/8.jpg'})`}}>
-         <Particle/>
-           <SliderMainParticle/>
-        </section>
-  
-        <section className='container no-bottom'>
-          <div className="row">
-              <div className="col-lg-2 col-sm-4 col-6 mb30" >
-                  <span className="box-url" onClick={connect}>
-                      
-                      <img src="./img/wallet/1.png" alt="" className="mb20"/>
-                      
-                      <h4>Metamask {active && <span>{`${account.slice(0,5)}...${account.slice(-4)}`}</span>}</h4>
-                  </span>
-              </div>
-  
-              <div className="col-lg-2 col-sm-4 col-6 mb30">
-                  <span className="box-url">
-                      <img src="./img/wallet/2.png" alt="" className="mb20"/>
-                      <h4>Bitski</h4>
-                  </span>
-              </div>       
-  
-              <div className="col-lg-2 col-sm-4 col-6 mb30">
-                  <span className="box-url">
-                      <img src="./img/wallet/3.png" alt="" className="mb20"/>
-                      <h4>Fortmatic</h4>
-                  </span>
-              </div>    
-  
-              <div className="col-lg-2 col-sm-4 col-6 mb30">
-                  <span className="box-url">
-                      <img src="./img/wallet/4.png" alt="" className="mb20"/>
-                      <h4>WalletConnect</h4>
-                  </span>
-              </div>
-  
-              <div className="col-lg-2 col-sm-4 col-6 mb30">
-                  <span className="box-url">
-                      <img src="./img/wallet/5.png" alt="" className="mb20"/>
-                      <h4>Coinbase</h4>
-                  </span>
-              </div>
-  
-              <div className="col-lg-2 col-sm-4 col-6 mb30">
-                  <span className="box-url">
-                      <img src="./img/wallet/6.png" alt="" className="mb20"/>
-                      <h4>Arkane</h4>
-                  </span>
-              </div>                                       
-          </div>
-        </section>
 
-        <section className='container no-top'>
-        <div className='row'>
-            <div className="spacer-double"></div>
-            <div className='col-lg-12 mb-3'>
-              <h2>Mint and Participate</h2>
-            </div>
-            <FeatureBox/>
+  return (
+    <div>
+      <GlobalStyles />
+      <section className="jumbotron no-bg" style={{ backgroundImage: `url(${'./img/background/8.jpg'})` }}>
+        <Particle />
+        <SliderMainParticle />
+      </section>
+
+      <section className='container no-bottom'>
+        <div className="row">
+          <div className="col-lg-2 col-sm-4 col-6 mb30" >
+            <span className="box-url" onClick={connect}>
+
+              <img src="./img/wallet/1.png" alt="" className="mb20" />
+
+              <h4>Metamask {active && <span>{`${account.slice(0, 5)}...${account.slice(-4)}`}</span>}</h4>
+            </span>
+          </div>
+
+          <div className="col-lg-2 col-sm-4 col-6 mb30">
+            <span className="box-url">
+              <img src="./img/wallet/2.png" alt="" className="mb20" />
+              <h4>Bitski</h4>
+            </span>
+          </div>
+
+          <div className="col-lg-2 col-sm-4 col-6 mb30">
+            <span className="box-url">
+              <img src="./img/wallet/3.png" alt="" className="mb20" />
+              <h4>Fortmatic</h4>
+            </span>
+          </div>
+
+          <div className="col-lg-2 col-sm-4 col-6 mb30">
+            <span className="box-url">
+              <img src="./img/wallet/4.png" alt="" className="mb20" />
+              <h4>WalletConnect</h4>
+            </span>
+          </div>
+
+          <div className="col-lg-2 col-sm-4 col-6 mb30">
+            <span className="box-url">
+              <img src="./img/wallet/5.png" alt="" className="mb20" />
+              <h4>Coinbase</h4>
+            </span>
+          </div>
+
+          <div className="col-lg-2 col-sm-4 col-6 mb30">
+            <span className="box-url">
+              <img src="./img/wallet/6.png" alt="" className="mb20" />
+              <h4>Arkane</h4>
+            </span>
+          </div>
         </div>
       </section>
 
-    <Footer />
+      <section className='container no-top'>
+        <div className='row'>
+          <div className="spacer-double"></div>
+          <div className='col-lg-12 mb-3'>
+            <h2>Mint and Participate</h2>
+          </div>
+          <FeatureBox />
+        </div>
+      </section>
+
+      <Footer />
     </div>
-  )};
-  export default Landing;
+  )
+};
+export default Landing;
