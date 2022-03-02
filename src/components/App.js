@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext } from 'react';
 import { Router, Location, Redirect } from '@reach/router';
+import { StarknetProvider } from '@starknet-react/core'
+
 import ScrollToTopBtn from './menu/scrollToTop';
 import Header from './menu/header';
 import Landing from './pages/Landing';
@@ -40,28 +42,29 @@ const PosedRouter = ({ children }) => (
   </Location>
 );
 
-
 const App = () => {
 
   return (
     <div className="wrapper">
       <GlobalStyles />
-      <PebbleContextProvider>
-        <Header />
-        <PosedRouter>
-          <ScrollTop path="/">
+      <StarknetProvider>
+        <PebbleContextProvider>
+          <Header />
+          <PosedRouter>
+            <ScrollTop path="/">
 
-            <Landing exact path="/">
-              <Redirect to="/landing" />
-            </Landing>
+              <Landing exact path="/">
+                <Redirect to="/landing" />
+              </Landing>
 
-            <Collection path="/profile" />
-            <Holdings path="/holdings" />
-            <Mint path="/mint" />
+              <Collection path="/profile" />
+              <Holdings path="/holdings" />
+              <Mint path="/mint" />
 
-          </ScrollTop>
-        </PosedRouter>
-      </PebbleContextProvider>
+            </ScrollTop>
+          </PosedRouter>
+        </PebbleContextProvider>
+      </StarknetProvider>
       <ScrollToTopBtn />
 
     </div>

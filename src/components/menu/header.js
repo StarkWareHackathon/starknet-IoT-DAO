@@ -6,6 +6,8 @@ import useOnclickOutside from "react-cool-onclickoutside";
 
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from '@web3-react/injected-connector'
+import { useStarknet } from '@starknet-react/core'
+
 import { AccountContext } from '../../state/contexts/AccountContext';
 
 setDefaultBreakpoints([
@@ -40,24 +42,28 @@ const Header = function () {
     supportedChainIds: [1, 3, 4, 5, 42, 4690],
   })
 
-  const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
+  // const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
+  const { activate, deactivate } = useWeb3React();
+
+  const { account, hasStarknet, connectBrowserWallet, library, error } = useStarknet()
 
   const { globalAccount, setGlobalAccount, globalActive, setGlobalActive } = useContext(AccountContext);
 
   useEffect(() => {
     setGlobalAccount(account);
-    setGlobalActive(active);
-  }, [account, active])
+  }, [account])
 
-  async function connect() {
+  const connect = async () => {
+    console.log('button clicked')
     try {
-      await activate(injected)
+      connectBrowserWallet()
+      // await activate(injected)
     } catch (ex) {
       console.log(ex)
     }
   }
 
-  async function disconnect() {
+  const disconnect = async () => {
     try {
       deactivate()
     } catch (ex) {
@@ -222,9 +228,9 @@ const Header = function () {
           </BreakpointProvider>
 
           <div className='mainside'>
-            {globalActive ? <button onClick={disconnect} className="btn-main">Disconnect</button> : <button onClick={connect} className="btn-main">Connect</button>}
+            {account ? <button onClick={() => disconnect()} className="btn-main">Disconnect</button> : <button onClick={() => connect()} className="btn-main">Connect</button>}
           </div>
-
+          {account && <div className='navbar-item'>Connected to {account}</div>}
         </div>
 
         <button className="nav-icon" onClick={() => btn_icon(!showmenu)}>
