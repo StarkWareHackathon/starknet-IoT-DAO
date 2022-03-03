@@ -4,16 +4,12 @@ import ScrollToTopBtn from './menu/scrollToTop';
 import Header from './menu/header';
 import Landing from './pages/Landing';
 import Mint from './pages/mint';
-
-
-
-
 import { createGlobalStyle } from 'styled-components';
-import Wallet from './pages/wallet';
 import Collection from './pages/collection';
 import Holdings from './pages/holdings';
 
 import PebbleContextProvider from '../state/PebbleContextProvider';
+import { StarknetProvider } from '@starknet-react/core';
 
 const GlobalStyles = createGlobalStyle`
   :root {
@@ -47,20 +43,22 @@ const App = () => {
     <div className="wrapper">
       <GlobalStyles />
       <PebbleContextProvider>
-        <Header />
-        <PosedRouter>
-          <ScrollTop path="/">
+        <StarknetProvider>
+          <Header />
+          <PosedRouter>
+            <ScrollTop path="/">
 
-            <Landing exact path="/">
-              <Redirect to="/landing" />
-            </Landing>
+              <Landing exact path="/">
+                <Redirect to="/landing" />
+              </Landing>
 
-            <Collection path="/profile" />
-            <Holdings path="/holdings" />
-            <Mint path="/mint" />
+              <Collection path="/profile" />
+              <Holdings path="/holdings" />
+              <Mint path="/mint" />
 
-          </ScrollTop>
-        </PosedRouter>
+            </ScrollTop>
+          </PosedRouter>
+        </StarknetProvider>
       </PebbleContextProvider>
       <ScrollToTopBtn />
 

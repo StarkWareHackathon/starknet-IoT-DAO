@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import styled from "styled-components";
-import Clock from "./Clock";
 
 const Outer = styled.div`
   display: flex;

@@ -7,6 +7,7 @@ import useOnclickOutside from "react-cool-onclickoutside";
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from '@web3-react/injected-connector'
 import { AccountContext } from '../../state/contexts/AccountContext';
+import { useStarknet } from '@starknet-react/core';
 
 setDefaultBreakpoints([
   { xs: 0 },
@@ -28,7 +29,6 @@ const NavLink = props => (
 );
 
 
-
 const Header = function () {
 
   const [openMenu, setOpenMenu] = React.useState(false);
@@ -36,33 +36,22 @@ const Header = function () {
   const [openMenu2, setOpenMenu2] = React.useState(false);
   const [openMenu3, setOpenMenu3] = React.useState(false);
 
-  const injected = new InjectedConnector({
-    supportedChainIds: [1, 3, 4, 5, 42, 4690],
-  })
-
-  const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
+  const { account, hasStarknet, connectBrowserWallet, library, error } = useStarknet();
 
   const { globalAccount, setGlobalAccount, globalActive, setGlobalActive } = useContext(AccountContext);
 
   useEffect(() => {
     setGlobalAccount(account);
-    setGlobalActive(active);
-  }, [account, active])
-
-  async function connect() {
-    try {
-      await activate(injected)
-    } catch (ex) {
-      console.log(ex)
+    if(account){
+      setGlobalActive(true);
     }
-  }
-
-  async function disconnect() {
-    try {
-      deactivate()
-    } catch (ex) {
-      console.log(ex)
+    else{
+      setGlobalActive(false);
     }
+  }, [account, globalAccount])
+
+  const disconnect = () => {
+    /*figure out how to disconnect*/
   }
 
 
@@ -220,10 +209,13 @@ const Header = function () {
               </div>
             </Breakpoint>
           </BreakpointProvider>
-
           <div className='mainside'>
-            {globalActive ? <button onClick={disconnect} className="btn-main">Disconnect</button> : <button onClick={connect} className="btn-main">Connect</button>}
+          {account && <p style = {{color : "white"}}>Account: {`${account.toString().slice(0,6)}...${account.toString().slice(-4)}`}</p> }
+          {account ? <button onClick={disconnect} className="btn-main">Disconnect</button> : <button className="btn-main" onClick={connectBrowserWallet}>Connect</button>}
           </div>
+          {/*<div className='mainside'>
+            {globalActive ? <button onClick={disconnect} className="btn-main">Disconnect</button> : <button onClick={connect} className="btn-main">Connect</button>}
+            </div>*/}
 
         </div>
 
