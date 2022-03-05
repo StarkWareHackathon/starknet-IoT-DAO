@@ -2,7 +2,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
 from starkware.cairo.common.alloc import alloc
-from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt
+from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt, assert_le
 from starkware.starknet.common.syscalls import get_caller_address
 
 from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
@@ -68,6 +68,15 @@ end
 func total_levels() -> (res : felt):
 end
 
+# ## Mapping to array
+@storage_var
+func dao_members(round : felt, index : felt) -> (sender : felt):
+end
+
+@storage_var
+func dao_members_length(round : felt) -> (index : felt):
+end
+
 # ## Mappings
 @storage_var
 func round_payouts(index : felt, address : felt) -> (res : felt):
@@ -83,10 +92,6 @@ end
 
 @storage_var
 func rating_labels(index : felt) -> (res : felt):
-end
-
-@storage_var
-func dao_members(index : felt) -> (res : felt):
 end
 
 @storage_var
@@ -149,8 +154,8 @@ end
 
 @view
 func get_dao_members{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        round : felt) -> (res : felt):
-    let (res : felt) = dao_members.read(round)
+        round : felt, index : felt) -> (res : felt):
+    let (res : felt) = dao_members.read(round, index)
     return (res)
 end
 ###
@@ -203,7 +208,6 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
     let (current_round : felt) = round.read()
     let (caller_level : felt) = levels_entered.read(current_round, caller_address)
 
-
     let new_level_payout : felt = (cost_schedule_len - level) * 2 + 2
     let caller_is_existing_member : felt = assert_lt(0, caller_level)
     if caller_is_existing_member == TRUE:
@@ -219,17 +223,36 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
         levels_entered.write(current_round, caller_address, level)
         payment_levels.write(current_round, caller_address, new_level_payout)
 
-
         tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
         tempvar syscall_ptr : felt* = syscall_ptr
         tempvar range_check_ptr = range_check_ptr
     else:
-
+        # new members
+        let transaction_value = 10  # # TODO: Refactor
+        let (scheduled_cost : felt) = cost_schedule.read(level - 1)
+        with_attr error_message("insufficent payment"):
+            let is_cost_paid : felt = assert_le(scheduled_cost, transaction_value)
+            assert is_cost_paid = TRUE
+        end
+        levels_entered.write(current_round, caller_address, level)
+        payment_levels.write(current_round, caller_address, new_level_payout)
+        let (dao_members_len : felt) = dao_members_length.read(current_round)
+        dao_members.write(current_round, dao_members_len, caller_address)
+        dao_members_length.write(dao_members_len + 1)
 
         tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
         tempvar syscall_ptr : felt* = syscall_ptr
         tempvar range_check_ptr = range_check_ptr
     end
+
+    current_token_id_for_addr.write(current_round, caller_address, token_id)
+    let (current_total_levels : felt) = total_levels.read()
+    total_levels.write(current_total_levels + new_level_payout)
+
+    if rebate > 0 :
+
+    end
+
 
     return ()
 end
