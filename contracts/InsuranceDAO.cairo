@@ -3,9 +3,11 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt, assert_le
-from starkware.starknet.common.syscalls import get_caller_address
+from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
+from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_add, uint256_eq
 
 from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
+from contracts.openzeppelin.token.erc20.interfaces.IERC20 import IERC20
 from contracts.openzeppelin.utils.constants import TRUE
 
 @contract_interface
@@ -61,10 +63,6 @@ end
 ###
 
 @storage_var
-func payout_cap() -> (res : felt):
-end
-
-@storage_var
 func total_levels() -> (res : felt):
 end
 
@@ -79,7 +77,7 @@ end
 
 # ## Mappings
 @storage_var
-func round_payouts(index : felt, address : felt) -> (res : felt):
+func round_payouts(index : felt, address : felt) -> (res : Uint256):
 end
 
 @storage_var
@@ -105,6 +103,15 @@ end
 @storage_var
 func nft_instance_contract_address() -> (res : felt):
 end
+
+@storage_var
+func usdc_contract_address() -> (address : felt):
+end
+
+# USDc
+@storage_var
+func payout_cap() -> (res : Uint256): 
+end
 ###
 
 @constructor
@@ -114,6 +121,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     Ownable_initializer(owner)
     assert_not_zero(verify_address)
     verify_contract_address.write(verify_address)
+    payout_cap.write(Uint256(0,5))
     return ()
 end
 
@@ -158,9 +166,24 @@ func get_dao_members{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     let (res : felt) = dao_members.read(round, index)
     return (res)
 end
+
+@view
+func get_payout_cap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (res : Uint256):
+    let (res : Uint256) = payout_cap.read()
+    return (res)
+end
 ###
 
 # ## Setters
+@external
+func set_usdc_contract_address{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
+        address : felt) -> ():
+    assert_not_zero(address)
+    Ownable_only_owner()
+    usdc_contract_address.write(address)
+    return ()
+end
+
 @external
 func set_nft_contract{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
         nft_contract : felt) -> ():
@@ -183,6 +206,7 @@ end
 @external
 func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
         level : felt, token_id : felt, timestamp : felt, signature : felt) -> ():
+    alloc_locals
     let (cost_schedule_len : felt) = cost_schedule_length.read()
     let (penalty_levels_len : felt) = penalty_levels_length.read()
     with_attr error_message("set DAO cost and price data"):
@@ -205,15 +229,26 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
         assert token_ids[token_ids_len - 1] = token_id
     end
 
-    let (current_round : felt) = round.read()
+    let (local current_round : felt) = round.read()
     let (caller_level : felt) = levels_entered.read(current_round, caller_address)
 
     let new_level_payout : felt = (cost_schedule_len - level) * 2 + 2
     let caller_is_existing_member : felt = assert_lt(0, caller_level)
+    let (usdc_address : felt) = usdc_contract_address.read()
+    let (contract_address : felt) = get_contract_address()
     if caller_is_existing_member == TRUE:
+        # transfer tokens into contract
+        with_attr error_message("payment failed"):
+            let (payout : Uint256) = payout_cap.read()
+            let (success : felt) = IERC20.transferFrom(
+                usdc_address, caller_address, contract_address, payout)
+            assert success = TRUE
+        end
+
         with_attr error_message("not change level once a payout is made"):
-            let (round_payout : felt) = round_payouts.read(current_round, caller_address)
-            assert round_payout = 0
+            let (round_payout : Uint256) = round_payouts.read(current_round, caller_address)
+            let (is_eq : felt) = uint256_eq(round_payout, Uint256(0,0))
+            assert is_eq = 0
         end
         let (prior_level : felt) = levels_entered.read(current_round, caller_address)
         with_attr error_message("can only exchange going down levels!"):
@@ -238,7 +273,7 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
         payment_levels.write(current_round, caller_address, new_level_payout)
         let (dao_members_len : felt) = dao_members_length.read(current_round)
         dao_members.write(current_round, dao_members_len, caller_address)
-        dao_members_length.write(dao_members_len + 1)
+        dao_members_length.write(current_round, dao_members_len + 1)
 
         tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
         tempvar syscall_ptr : felt* = syscall_ptr
@@ -248,11 +283,61 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
     current_token_id_for_addr.write(current_round, caller_address, token_id)
     let (current_total_levels : felt) = total_levels.read()
     total_levels.write(current_total_levels + new_level_payout)
+    return ()
+end
 
-    if rebate > 0 :
-
+@external
+func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
+        amount : Uint256, _payee : felt) -> ():
+    alloc_locals
+    Ownable_only_owner()
+    let (usdc_address : felt) = usdc_contract_address.read()
+    with_attr error_message("insufficient funds"):
+        let (contract_address : felt) = get_contract_address()
+        let (balance : Uint256) = IERC20.balanceOf(usdc_address, contract_address)
+        let is_balance_gt_amount : felt = uint256_le(amount, balance)
+        assert is_balance_gt_amount = TRUE
     end
 
+    let (current_round : felt) = round.read()
+    with_attr error_message("not a member of DAO"):
+        let (current_token_id_for_address : felt) = current_token_id_for_addr.read(current_round, _payee)
+        assert_not_zero(current_token_id_for_address)
+    end
+
+    let prev_payout : felt = round_payouts.read(current_round, _payee)
+    with_attr error_message("max payout for round exceeded"):
+        let (payout : Uint256) = payout_cap.read()
+        let (possible_payout : Uint256) = uint256_add(prev_payout, amount)
+        let is_le = uint256_le(payout, possible_payout)
+        assert is_le = TRUE
+    end
+
+    let new_payout : felt = prev_payout + amount
+    round_payouts.write(current_round, _payee, new_payout)
+
+    let level_entered : felt = levels_entered.read(current_round, _payee)
+    let scheduled_cost : felt = cost_schedule.read(level_entered)
+    let current_total_levels = total_levels.read()
+    let is_le : felt = assert_le(scheduled_cost, level_entered)
+    if is_le == TRUE:
+        let current_payment_level = payment_levels.read(current_round, _payee)
+        total_levels.write(current_total_levels - current_payment_level)
+        payment_levels.write(current_round,_payee, 0)
+    end
+
+    let is_le : felt = assert_le(scheduled_cost / 2, level_entered)
+    let is_lt : felt = assert_lt(prev_payout, scheduled_cost)
+
+    if is_le == is_lt:
+        total_levels.write(current_total_levels - current_payment_level / 2)
+        payment_levels.write(current_round,_payee, current_payment_level/2)
+    end
+
+    with_attr error_message("payment failed"):
+        let (success : felt) = IERC20.transfer(usdc_address, _payee, amount)
+        assert success = TRUE
+    end
 
     return ()
 end
