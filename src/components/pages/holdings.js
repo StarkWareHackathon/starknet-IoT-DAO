@@ -2,8 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import ColumnNewThreeColRedux from '../components/ColumnNewThreeColRedux';
 import Footer from '../components/Footer';
 import { createGlobalStyle } from 'styled-components';
-import { useWeb3React } from "@web3-react/core";
-import { AccountContext } from '../../state/contexts/AccountContext';
+import { useArgentX } from "../../state/hooks/useArgentX";
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader.navbar.white {
@@ -16,15 +15,12 @@ const Holdings = function (props) {
   const [metaDataList, setMetaDataList] = useState([]);
   const [memberList, setMemberList] = useState([]);
 
-  const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
-
-  const { globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId } = useContext(AccountContext);
-
+  const argentX = useArgentX();
 
   useEffect(() => {
     const loadUserNFTData = async () => {
-      if (active) {
-        const response = await fetch(`/dao-nfts/${account}`);
+      if (argentX.globalAccount) {
+        const response = await fetch(`/dao-nfts/${argentX.globalAccount}`);
         const body = await response.json();
         const nftList = body.results;
         let metaDataList = Array(nftList.length);
@@ -51,15 +47,12 @@ const Holdings = function (props) {
         setMetaDataList([]);
         setMemberList([]);
       }
-      setGlobalAccount(account);
-      setGlobalActive(active);
-      setGlobalChainId(chainId);
     }
 
     loadUserNFTData()
       .catch(console.error);
 
-  }, [account, active, chainId])
+  }, [argentX.globalAccount])
 
   const imageMap = {
     "0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631": "author-1", "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca": "author-2",
@@ -75,9 +68,9 @@ const Holdings = function (props) {
       </section>
 
       <section className='container no-top'>
-        {active && (
-          <div key={account} id='zero1' className='onStep fadeIn'>
-            <ColumnNewThreeColRedux key={account} nftList={nftList} metaDataList={metaDataList} memberList={memberList} />
+        {argentX.globalAccount && (
+          <div key={argentX.globalAccount} id='zero1' className='onStep fadeIn'>
+            <ColumnNewThreeColRedux key={argentX.globalAccount} nftList={nftList} metaDataList={metaDataList} memberList={memberList} />
           </div>
         )}
       </section>

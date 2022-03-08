@@ -8,8 +8,10 @@ import FeatureBox from '../components/FeatureBox';
 
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from '@web3-react/injected-connector'
-import { AccountContext } from '../../state/contexts/AccountContext';
-import { useStarknet } from '@starknet-react/core';
+import { useArgentX } from "../../state/hooks/useArgentX";
+
+// import { AccountContext } from '../../state/contexts/AccountContext';
+// import { useStarknet } from '@starknet-react/core';
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader .logo .d-block{
@@ -111,20 +113,7 @@ const GlobalStyles = createGlobalStyle`
 `;
 
 const Landing = () => {
-
-  const { account, hasStarknet, connectBrowserWallet, library, error } = useStarknet();
-
-    const { globalAccount, setGlobalAccount, globalActive, setGlobalActive } = useContext(AccountContext);
-
-    useEffect(() => {
-        setGlobalAccount(account);
-        if(account){
-        setGlobalActive(true);
-        }
-        else{
-        setGlobalActive(false);
-        }
-    }, [account, globalAccount])
+  const argentX = useArgentX();
 
   return (
     <div>
@@ -137,11 +126,11 @@ const Landing = () => {
       <section className='container no-bottom'>
         <div className="row">
           <div className="col-lg-2 col-sm-4 col-6 mb30" >
-            <span className="box-url" onClick={connectBrowserWallet}>
+            <span className="box-url" onClick={() => argentX.connectToArgentX()}>
 
               <img src="./img/wallet/1.png" alt="" className="mb20" />
 
-              <h4>Argent {account && <span>{`${account.slice(0, 5)}...${account.slice(-4)}`}</span>}</h4>
+              <h4>Argent {argentX.globalAccount && <span>{`${argentX.globalAccount.slice(0, 5)}...${argentX.globalAccount.slice(-4)}`}</span>}</h4>
             </span>
           </div>
 

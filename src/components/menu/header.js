@@ -4,10 +4,7 @@ import { header } from 'react-bootstrap';
 import { Link } from '@reach/router';
 import useOnclickOutside from "react-cool-onclickoutside";
 
-import { useWeb3React } from "@web3-react/core";
-import { InjectedConnector } from '@web3-react/injected-connector'
-import { AccountContext } from '../../state/contexts/AccountContext';
-import { useStarknet } from '@starknet-react/core';
+import { useArgentX } from "../../state/hooks/useArgentX";
 
 setDefaultBreakpoints([
   { xs: 0 },
@@ -36,22 +33,17 @@ const Header = function () {
   const [openMenu2, setOpenMenu2] = React.useState(false);
   const [openMenu3, setOpenMenu3] = React.useState(false);
 
-  const { account, hasStarknet, connectBrowserWallet, library, error } = useStarknet();
-
-  const { globalAccount, setGlobalAccount, globalActive, setGlobalActive } = useContext(AccountContext);
+  const argentX = useArgentX();
 
   useEffect(() => {
-    setGlobalAccount(account);
-    if(account){
-      setGlobalActive(true);
+    if (argentX.globalAccount) {
+      argentX.setConnected(true)
     }
-    else{
-      setGlobalActive(false);
-    }
-  }, [account, globalAccount])
+  }, [argentX.connectToArgentX])
 
   const disconnect = () => {
-    /*figure out how to disconnect*/
+    argentX.setConnected(false)
+    argentX.setGlobalAccount('')
   }
 
 
@@ -114,6 +106,7 @@ const Header = function () {
       window.removeEventListener("scroll", scrollCallBack);
     };
   }, []);
+
   return (
     <header id="myHeader" className='navbar white'>
       <div className='container'>
@@ -210,8 +203,8 @@ const Header = function () {
             </Breakpoint>
           </BreakpointProvider>
           <div className='mainside'>
-          {account && <p style = {{color : "white"}}>Account: {`${account.toString().slice(0,6)}...${account.toString().slice(-4)}`}</p> }
-          {account ? <button onClick={disconnect} className="btn-main">Disconnect</button> : <button className="btn-main" onClick={connectBrowserWallet}>Connect</button>}
+            {argentX.connected && <p style={{ color: "white" }}>Account: {`${argentX.globalAccount.toString().slice(0, 6)}...${argentX.globalAccount.toString().slice(-4)}`}</p>}
+            {argentX.connected ? <button onClick={() => disconnect()} className="btn-main">Disconnect</button> : <button className="btn-main" onClick={() => argentX.connectToArgentX()}>Connect</button>}
           </div>
           {/*<div className='mainside'>
             {globalActive ? <button onClick={disconnect} className="btn-main">Disconnect</button> : <button onClick={connect} className="btn-main">Connect</button>}
