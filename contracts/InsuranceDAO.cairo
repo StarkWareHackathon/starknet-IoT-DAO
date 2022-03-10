@@ -4,7 +4,7 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt, assert_le
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
-from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_add, uint256_eq
+from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_lt, uint256_add, uint256_eq, uint256_unsigned_div_rem
 
 from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
 from contracts.openzeppelin.token.erc20.interfaces.IERC20 import IERC20
@@ -30,7 +30,7 @@ func round() -> (res : felt):
 end
 
 @storage_var
-func cost_schedule(index : felt) -> (res : felt):
+func cost_schedule(index : felt) -> (res : Uint256):
 end
 
 @storage_var
@@ -245,8 +245,8 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
             assert success = TRUE
         end
 
+        let (round_payout : Uint256) = round_payouts.read(current_round, caller_address)
         with_attr error_message("not change level once a payout is made"):
-            let (round_payout : Uint256) = round_payouts.read(current_round, caller_address)
             let (is_eq : felt) = uint256_eq(round_payout, Uint256(0,0))
             assert is_eq = 0
         end
@@ -263,10 +263,10 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
         tempvar range_check_ptr = range_check_ptr
     else:
         # new members
-        let transaction_value = 10  # # TODO: Refactor
-        let (scheduled_cost : felt) = cost_schedule.read(level - 1)
+        let transaction_value : Uint256 = Uint256(0,10)  # # TODO: Refactor
+        let (scheduled_cost : Uint256) = cost_schedule.read(level - 1)
         with_attr error_message("insufficent payment"):
-            let is_cost_paid : felt = assert_le(scheduled_cost, transaction_value)
+            let (is_cost_paid : felt) = uint256_eq(scheduled_cost, transaction_value)
             assert is_cost_paid = TRUE
         end
         levels_entered.write(current_round, caller_address, level)
@@ -292,9 +292,10 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
     alloc_locals
     Ownable_only_owner()
     let (usdc_address : felt) = usdc_contract_address.read()
+    let (contract_address : felt) = get_contract_address()
+    let (balance : Uint256) = IERC20.balanceOf(usdc_address, contract_address)
+
     with_attr error_message("insufficient funds"):
-        let (contract_address : felt) = get_contract_address()
-        let (balance : Uint256) = IERC20.balanceOf(usdc_address, contract_address)
         let is_balance_gt_amount : felt = uint256_le(amount, balance)
         assert is_balance_gt_amount = TRUE
     end
@@ -305,33 +306,54 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
         assert_not_zero(current_token_id_for_address)
     end
 
-    let prev_payout : felt = round_payouts.read(current_round, _payee)
+    let (prev_payout : Uint256) = round_payouts.read(current_round, _payee)
+    let (payout : Uint256) = payout_cap.read()
     with_attr error_message("max payout for round exceeded"):
-        let (payout : Uint256) = payout_cap.read()
-        let (possible_payout : Uint256) = uint256_add(prev_payout, amount)
-        let is_le = uint256_le(payout, possible_payout)
+        let (possible_payout : Uint256, _) = uint256_add(prev_payout, amount)
+        let (is_le : felt) = uint256_le(payout, possible_payout)
         assert is_le = TRUE
     end
 
-    let new_payout : felt = prev_payout + amount
+    let (new_payout : Uint256, _) = uint256_add(prev_payout, amount)
     round_payouts.write(current_round, _payee, new_payout)
 
-    let level_entered : felt = levels_entered.read(current_round, _payee)
-    let scheduled_cost : felt = cost_schedule.read(level_entered)
-    let current_total_levels = total_levels.read()
-    let is_le : felt = assert_le(scheduled_cost, level_entered)
+    let (level_entered : felt) = levels_entered.read(current_round, _payee)
+    let (scheduled_cost : Uint256) = cost_schedule.read(level_entered)
+    let (current_total_levels : felt) = total_levels.read()
+    let (is_le : felt) = uint256_le(scheduled_cost, Uint256(0, level_entered))
+
+    let (current_payment_level : felt) = payment_levels.read(current_round, _payee)
+
+
     if is_le == TRUE:
-        let current_payment_level = payment_levels.read(current_round, _payee)
         total_levels.write(current_total_levels - current_payment_level)
         payment_levels.write(current_round,_payee, 0)
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
     end
 
-    let is_le : felt = assert_le(scheduled_cost / 2, level_entered)
-    let is_lt : felt = assert_lt(prev_payout, scheduled_cost)
+    tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+    tempvar syscall_ptr : felt* = syscall_ptr
+    
+    let (cost_divided : Uint256, _) = uint256_unsigned_div_rem(scheduled_cost, Uint256(0,2))
+    let is_le : felt = uint256_lt(cost_divided, Uint256(0, level_entered))
+    let is_lt : felt = uint256_lt(prev_payout, scheduled_cost)
 
     if is_le == is_lt:
         total_levels.write(current_total_levels - current_payment_level / 2)
         payment_levels.write(current_round,_payee, current_payment_level/2)
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
     end
 
     with_attr error_message("payment failed"):
