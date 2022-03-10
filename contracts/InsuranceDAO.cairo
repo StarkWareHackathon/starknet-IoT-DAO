@@ -292,9 +292,10 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
     alloc_locals
     Ownable_only_owner()
     let (usdc_address : felt) = usdc_contract_address.read()
+    let (contract_address : felt) = get_contract_address()
+    let (balance : Uint256) = IERC20.balanceOf(usdc_address, contract_address)
+
     with_attr error_message("insufficient funds"):
-        let (contract_address : felt) = get_contract_address()
-        let (balance : Uint256) = IERC20.balanceOf(usdc_address, contract_address)
         let is_balance_gt_amount : felt = uint256_le(amount, balance)
         assert is_balance_gt_amount = TRUE
     end
@@ -306,8 +307,8 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
     end
 
     let (prev_payout : Uint256) = round_payouts.read(current_round, _payee)
+    let (payout : Uint256) = payout_cap.read()
     with_attr error_message("max payout for round exceeded"):
-        let (payout : Uint256) = payout_cap.read()
         let (possible_payout : Uint256, _) = uint256_add(prev_payout, amount)
         let (is_le : felt) = uint256_le(payout, possible_payout)
         assert is_le = TRUE
@@ -327,7 +328,17 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
     if is_le == TRUE:
         total_levels.write(current_total_levels - current_payment_level)
         payment_levels.write(current_round,_payee, 0)
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
     end
+
+    tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+    tempvar syscall_ptr : felt* = syscall_ptr
     
     let (cost_divided : Uint256, _) = uint256_unsigned_div_rem(scheduled_cost, Uint256(0,2))
     let is_le : felt = uint256_lt(cost_divided, Uint256(0, level_entered))
@@ -336,6 +347,13 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
     if is_le == is_lt:
         total_levels.write(current_total_levels - current_payment_level / 2)
         payment_levels.write(current_round,_payee, current_payment_level/2)
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
     end
 
     with_attr error_message("payment failed"):
