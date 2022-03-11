@@ -76,6 +76,25 @@ end
 func dao_contract_address() -> (res : felt):
 end
 
+#track mint/update of NFTs per address
+@storage_var
+func last_block_number_update(address : felt) -> (res : Uint256):
+end
+
+#last timestamp we used for minting NFT
+@storage_var
+func last_timestamp_nft_used(address : felt) -> (res : Uint256):
+end
+
+#track all NFTs owned by a user
+@storage_var
+func tokens_by_address(address : felt) -> (res : Uint256*):
+end
+
+@storage_var
+func tokens_by_address_len(address : felt) -> (res : felt):
+end
+
 #
 # Getters
 #
