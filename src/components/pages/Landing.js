@@ -128,7 +128,7 @@ const Landing = () => {
           <div className="col-lg-2 col-sm-4 col-6 mb30" >
             <span className="box-url" onClick={() => argentX.connectToArgentX()}>
 
-              <img src="./img/wallet/1.png" alt="" className="mb20" />
+              <img src="./img/wallet/argent.svg" alt="" className="mb20" />
 
               <h4>Argent {argentX.globalAccount && <span>{`${argentX.globalAccount.slice(0, 5)}...${argentX.globalAccount.slice(-4)}`}</span>}</h4>
             </span>
