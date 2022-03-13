@@ -7,4 +7,5 @@ coverage.json
 typechain
 deployments/*
 TestToken.sol
-
+*__pycache__*
+starknet-venv

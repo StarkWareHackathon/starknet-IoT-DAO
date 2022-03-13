@@ -88,7 +88,7 @@ end
 
 #track all NFTs owned by a user
 @storage_var
-func tokens_by_address(address : felt) -> (res : Uint256*):
+func tokens_by_address(address : felt, index : felt) -> (res : Uint256):
 end
 
 @storage_var
