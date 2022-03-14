@@ -5,6 +5,8 @@ require("hardhat-prettier");
 require("hardhat-gas-reporter");
 require("dotenv").config();
 require("hardhat-deploy");
+import "@shardlabs/starknet-hardhat-plugin";
+import "@nomiclabs/hardhat-ethers";
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -22,8 +24,27 @@ const {INFURA_ID, DEPLOYER_PRIVATE_KEY} = process.env;
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
+  starknet: {
+    //dockerizedVersion: "0.7.1", // alternatively choose one of the two venv options below
+    // uses (my-venv) defined by `python -m venv path/to/my-venv`
+    // venv: "path/to/my-venv",
+
+    // uses the currently active Python environment (hopefully with available Starknet commands!)
+    venv: "active",
+    network: "alpha",
+    wallets: {
+      OpenZeppelin: {
+        accountName: "OpenZeppelin",
+        modulePath: "starkware.starknet.wallets.open_zeppelin.OpenZeppelinAccount",
+        accountPath: "~/.starknet_accounts"
+      }
+    }
+  },
   defaultNetwork : "hardhat",
   networks : {
+    devnet: {
+      url: "http://localhost:5000"
+    },
     hardhat : {
       chainId : 1337
     },

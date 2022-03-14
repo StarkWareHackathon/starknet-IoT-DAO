@@ -53,13 +53,13 @@ func constructor{
     }(
         name: felt,
         symbol: felt,
-        owner: felt,
         tokenURI_len: felt,
         tokenURI: felt*,
         verify_address: felt,
         dao_address: felt
     ):
     ERC721_initializer(name, symbol)
+    let owner : felt = get_caller_address()
     Ownable_initializer(owner)
     ERC721_setBaseTokenURI(tokenURI_len, tokenURI)
     verify_contract_address.write(verify_address)
@@ -88,7 +88,7 @@ end
 
 #track all NFTs owned by a user
 @storage_var
-func tokens_by_address(address : felt) -> (res : Uint256*):
+func tokens_by_address(address : felt, index : felt) -> (res : Uint256):
 end
 
 @storage_var

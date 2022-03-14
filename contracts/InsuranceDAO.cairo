@@ -1,10 +1,12 @@
 %lang starknet
 
-from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
+from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.alloc import alloc
+from starkware.cairo.common.invoke import invoke
+from starkware.cairo.common.registers import get_label_location
 from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt, assert_le
-from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_lt, uint256_add, uint256_eq, uint256_unsigned_div_rem
+from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
 from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
 from contracts.openzeppelin.token.erc20.interfaces.IERC20 import IERC20
@@ -25,10 +27,6 @@ namespace IVerify:
 end
 
 # ## Arrays
-@storage_var
-func round() -> (res : felt):
-end
-
 @storage_var
 func cost_schedule(index : felt) -> (res : Uint256):
 end
@@ -95,6 +93,10 @@ end
 @storage_var
 func current_token_id_for_addr(index : felt, address : felt) -> (res : felt):
 end
+###
+@storage_var
+func round() -> (res : felt):
+end
 
 @storage_var
 func verify_contract_address() -> (res : felt):
@@ -126,32 +128,52 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 end
 
 # ## Getters
-# @view
-# func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
-#         res : felt):
-#     let (res : felt) = penalty_levels.read(index)
-#     return (res)
-# end
+@view
+func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
+        array_len : felt, array : felt*):
+    alloc_locals
+    let (length : felt) = penalty_levels_length.read()
+    let (mapping_ref : felt) = get_label_location(penalty_levels.read)
+    let (array : felt*) = alloc()
 
-# @view
-# func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
-#         res : felt):
-#     let (res : felt) = acc_levels.read(index)
-#     return (res)
-# end
+    _get_array(length, array, mapping_ref)
+    return (length, array)
+end
 
-# @view
-# func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (res : felt):
-#     let (res : felt) = cost_schedule.read(index)
-#     return (res)
-# end
+@view
+func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
+        array_len : felt, array : felt*):
+    alloc_locals
+    let (length : felt) = acc_levels_length.read()
+    let (mapping_ref : felt) = get_label_location(acc_levels.read)
+    let (array : felt*) = alloc()
 
-# @view
-# func get_ratings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
-#         res : felt):
-#     let (res : felt) = rating_average_breaks.read(index)
-#     return (res)
-# end
+    _get_array(length, array, mapping_ref)
+    return (length, array)
+end
+
+@view
+func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (array_len : felt, array : felt*):
+    alloc_locals
+    let (length : felt) = cost_schedule_length.read()
+    let (mapping_ref : felt) = get_label_location(cost_schedule.read)
+    let (array : felt*) = alloc()
+
+    _get_array(length, array, mapping_ref)
+    return (length, array)
+end
+
+@view
+func get_ratings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
+        array_len : felt, array : felt*):
+    alloc_locals
+    let (length : felt) = rating_average_breaks_length.read()
+    let (mapping_ref : felt) = get_label_location(rating_average_breaks.read)
+    let (array : felt*) = alloc()
+
+    _get_array(length, array, mapping_ref)
+    return (length, array)
+end
 
 @view
 func get_current_round{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
@@ -364,10 +386,32 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
     return ()
 end
 
+
+@external
+func make_dao_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
+    Ownable_only_owner()
+    let (current_round : felt) = round.read()
+    return ()
+end
+
 # ## Internal function
 func increment_round{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
     let (current_value : felt) = round.read()
     assert_nn_le(current_value, current_value + 1)  # overflow check
     round.write(current_value + 1)
     return ()
+end
+
+
+func _get_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(array_len: felt, array : felt*, mapping_ref: felt) -> ():
+    if array_len == 0:
+        return ()
+    end
+    
+    let (array_length_ptr : felt*) = alloc()
+    assert array_length_ptr[0] = array_len # invoke expect a pointer as arg
+    let val : felt = invoke(mapping_ref, 1, array_length_ptr)
+    assert array[array_len] = val
+
+    return _get_array(array_len-1, array, mapping_ref)
 end
