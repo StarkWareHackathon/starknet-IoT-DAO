@@ -65,7 +65,11 @@ func ERC721_tokenURI_test{
     let (local base_tokenURI) = alloc()
     let (local base_tokenURI_len) = ERC721_base_tokenURI_len.read()
     _ERC721_baseTokenURI(base_tokenURI_len, base_tokenURI)
-    let (token_id_ss_len, token_id_ss) = uint256_to_ss(ipfs_uri)
+    #let (token_id_ss_len, token_id_ss) = uint256_to_ss(ipfs_uri)
+    let token_id_ss_len = 2
+    let (local token_id_ss : felt*) = alloc()
+    token_id_ss[0] =  ipfs_uri.high
+    token_id_ss[1] = ipfs_uri.low
     let (tokenURI, tokenURI_len) = concat_arr(
         base_tokenURI_len,
         base_tokenURI,
