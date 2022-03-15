@@ -51,6 +51,31 @@ func ERC721_tokenURI{
     return (tokenURI_len=tokenURI_len, tokenURI=tokenURI)
 end
 
+func ERC721_tokenURI_test{
+        syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }(token_id: Uint256, ipfs_uri : Uint256) -> (tokenURI_len: felt, tokenURI: felt*):
+    alloc_locals
+
+    let (exists) = _exists(token_id)
+    assert exists = TRUE
+
+    # Return tokenURI with an array of felts, `${base_tokenURI}/${token_id}`
+    let (local base_tokenURI) = alloc()
+    let (local base_tokenURI_len) = ERC721_base_tokenURI_len.read()
+    _ERC721_baseTokenURI(base_tokenURI_len, base_tokenURI)
+    let (token_id_ss_len, token_id_ss) = uint256_to_ss(ipfs_uri)
+    let (tokenURI, tokenURI_len) = concat_arr(
+        base_tokenURI_len,
+        base_tokenURI,
+        token_id_ss_len,
+        token_id_ss,
+    )
+
+    return (tokenURI_len=tokenURI_len, tokenURI=tokenURI)
+end
+
 
 func _ERC721_baseTokenURI{
         syscall_ptr: felt*,

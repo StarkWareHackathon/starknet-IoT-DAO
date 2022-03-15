@@ -25,7 +25,8 @@ from openzeppelin.token.erc721.library import (
 )
 from openzeppelin.token.erc721.tokenURI_library import (
     ERC721_tokenURI,
-    ERC721_setBaseTokenURI
+    ERC721_setBaseTokenURI,
+    ERC721_tokenURI_test
 )
 
 
@@ -93,6 +94,14 @@ end
 
 @storage_var
 func tokens_by_address_len(address : felt) -> (res : felt):
+end
+
+@storage_var
+func current_token_id() -> (res : Uint256):
+end
+
+@storage_var
+func ipfs_uri_by_token(id : Uint256) -> (res : Uint256):
 end
 
 #
@@ -175,8 +184,18 @@ func tokenURI{
         pedersen_ptr: HashBuiltin*,
         range_check_ptr
     }(tokenId: Uint256) -> (tokenURI_len: felt, tokenURI: felt*):
-    let (tokenURI_len: felt, tokenURI: felt*) = ERC721_tokenURI(tokenId)
+    let (ipfs_uri : Uint256) = ipfs_uri_by_token.read(tokenId)
+    let (tokenURI_len: felt, tokenURI: felt*) = ERC721_tokenURI_test(tokenId, ipfs_uri)
     return (tokenURI_len=tokenURI_len, tokenURI=tokenURI)
+end
+
+@view
+func currentId{syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }() -> (last_id : Uint256):
+    let (last_id : Uint256) = current_token_id.read()
+    return (last_id = last_id)
 end
 
 
@@ -250,9 +269,15 @@ func mint{
         pedersen_ptr: HashBuiltin*,
         syscall_ptr: felt*,
         range_check_ptr
-    }(to: felt, tokenId: Uint256):
-    Ownable_only_owner()
+    }(ipfs_uri_hex : Uint256, last_time_stamp : Uint256, r : felt, s : felt, v : felt):
+    alloc_locals
+    #let (to : felt) = get_caller_address()
+    let to = 10
+    let (curr_id : Uint256) = current_token_id.read()
+    let (tokenId : Uint256, carry : felt) = uint256_add( curr_id, Uint256(1,0))
     ERC721_mint(to, tokenId)
+    current_token_id.write(tokenId)
+    ipfs_uri_by_token.write(tokenId, ipfs_uri_hex)
     return ()
 end
 
