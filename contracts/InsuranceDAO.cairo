@@ -5,7 +5,8 @@ from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.invoke import invoke
 from starkware.cairo.common.registers import get_label_location
 from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt, assert_le
-from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_lt, uint256_add, uint256_eq, uint256_unsigned_div_rem, uint256_mul
+from starkware.cairo.common.uint256 import (
+    Uint256, uint256_le, uint256_lt, uint256_add, uint256_eq, uint256_unsigned_div_rem, uint256_mul)
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
 from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
@@ -112,7 +113,7 @@ end
 
 # USDc
 @storage_var
-func payout_cap() -> (res : Uint256): 
+func payout_cap() -> (res : Uint256):
 end
 ###
 
@@ -123,14 +124,14 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     Ownable_initializer(owner)
     assert_not_zero(verify_address)
     verify_contract_address.write(verify_address)
-    payout_cap.write(Uint256(0,5))
+    payout_cap.write(Uint256(0, 5))
     return ()
 end
 
 # ## Getters
 @view
-func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
-        array_len : felt, array : felt*):
+func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        index : felt) -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = penalty_levels_length.read()
     let (mapping_ref : felt) = get_label_location(penalty_levels.read)
@@ -141,8 +142,8 @@ func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
 end
 
 @view
-func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
-        array_len : felt, array : felt*):
+func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        index : felt) -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = acc_levels_length.read()
     let (mapping_ref : felt) = get_label_location(acc_levels.read)
@@ -153,7 +154,8 @@ func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
 end
 
 @view
-func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (array_len : felt, array : felt*):
+func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
+        array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = cost_schedule_length.read()
     let (mapping_ref : felt) = get_label_location(cost_schedule.read)
@@ -164,8 +166,8 @@ func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 end
 
 @view
-func get_ratings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
-        array_len : felt, array : felt*):
+func get_ratings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        index : felt) -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = rating_average_breaks_length.read()
     let (mapping_ref : felt) = get_label_location(rating_average_breaks.read)
@@ -190,7 +192,8 @@ func get_dao_members{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
 end
 
 @view
-func get_payout_cap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (res : Uint256):
+func get_payout_cap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+        res : Uint256):
     let (res : Uint256) = payout_cap.read()
     return (res)
 end
@@ -269,7 +272,7 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
 
         let (round_payout : Uint256) = round_payouts.read(current_round, caller_address)
         with_attr error_message("not change level once a payout is made"):
-            let (is_eq : felt) = uint256_eq(round_payout, Uint256(0,0))
+            let (is_eq : felt) = uint256_eq(round_payout, Uint256(0, 0))
             assert is_eq = 0
         end
         let (prior_level : felt) = levels_entered.read(current_round, caller_address)
@@ -285,7 +288,7 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
         tempvar range_check_ptr = range_check_ptr
     else:
         # new members
-        let transaction_value : Uint256 = Uint256(0,10)  # # TODO: Refactor
+        let transaction_value : Uint256 = Uint256(0, 10)  # # TODO: Refactor
         let (scheduled_cost : Uint256) = cost_schedule.read(level - 1)
         with_attr error_message("insufficent payment"):
             let (is_cost_paid : felt) = uint256_eq(scheduled_cost, transaction_value)
@@ -309,6 +312,16 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
 end
 
 @external
+func set_cost_schedule{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
+    return ()
+end
+
+@external
+func set_penalties{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
+    return ()
+end
+
+@external
 func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
         amount : Uint256, _payee : felt) -> ():
     alloc_locals
@@ -323,7 +336,8 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
 
     let (current_round : felt) = round.read()
     with_attr error_message("not a member of DAO"):
-        let (current_token_id_for_address : felt) = current_token_id_for_addr.read(current_round, _payee)
+        let (current_token_id_for_address : felt) = current_token_id_for_addr.read(
+            current_round, _payee)
         assert_not_zero(current_token_id_for_address)
     end
 
@@ -345,10 +359,9 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
 
     let (current_payment_level : felt) = payment_levels.read(current_round, _payee)
 
-
     if is_le == TRUE:
         total_levels.write(current_total_levels - current_payment_level)
-        payment_levels.write(current_round,_payee, 0)
+        payment_levels.write(current_round, _payee, 0)
         tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
         tempvar syscall_ptr : felt* = syscall_ptr
         tempvar range_check_ptr = range_check_ptr
@@ -360,14 +373,14 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
 
     tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
     tempvar syscall_ptr : felt* = syscall_ptr
-    
-    let (cost_divided : Uint256, _) = uint256_unsigned_div_rem(scheduled_cost, Uint256(0,2))
+
+    let (cost_divided : Uint256, _) = uint256_unsigned_div_rem(scheduled_cost, Uint256(0, 2))
     let is_le : felt = uint256_lt(cost_divided, Uint256(0, level_entered))
     let is_lt : felt = uint256_lt(prev_payout, scheduled_cost)
 
     if is_le == is_lt:
         total_levels.write(current_total_levels - current_payment_level / 2)
-        payment_levels.write(current_round,_payee, current_payment_level/2)
+        payment_levels.write(current_round, _payee, current_payment_level / 2)
         tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
         tempvar syscall_ptr : felt* = syscall_ptr
         tempvar range_check_ptr = range_check_ptr
@@ -385,7 +398,6 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
     return ()
 end
 
-
 @external
 func make_dao_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
     alloc_locals
@@ -399,18 +411,21 @@ func make_dao_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_che
     let (usdc_address : felt) = usdc_contract_address.read()
     let (balance : Uint256) = _get_current_balance(usdc_address)
     let (current_total_levels : felt) = total_levels.read()
-    let (base_payout : Uint256, _) = uint256_unsigned_div_rem(balance, Uint256(0, current_total_levels))
+    let (base_payout : Uint256, _) = uint256_unsigned_div_rem(
+        balance, Uint256(0, current_total_levels))
 
     let (length : felt) = dao_members_length.read(current_round)
     let (mapping_ref : felt) = get_label_location(dao_members.read)
 
     _make_payout(length, mapping_ref, current_round, base_payout, usdc_address)
 
-    round.write(current_round+1)
+    round.write(current_round + 1)
     return ()
 end
 
-func _make_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(array_len: felt, mapping_ref: felt, current_round : felt, base_payout : Uint256, token_address : felt) -> ():
+func _make_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
+        array_len : felt, mapping_ref : felt, current_round : felt, base_payout : Uint256,
+        token_address : felt) -> ():
     alloc_locals
     if array_len == 0:
         return ()
@@ -419,7 +434,7 @@ func _make_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
     let (payment_level : felt) = payment_levels.read(current_round, array_len + 1)
     let (val : Uint256, high : Uint256) = uint256_mul(Uint256(0, payment_level), base_payout)
 
-    let (not_overflow : felt ) = uint256_eq(high, Uint256(0,0))
+    let (not_overflow : felt) = uint256_eq(high, Uint256(0, 0))
     assert_not_zero(not_overflow)
 
     let (invoke_args : felt*) = alloc()
@@ -432,7 +447,7 @@ func _make_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
         assert success = TRUE
     end
 
-    return _make_payout(array_len -1, mapping_ref, current_round, base_payout, token_address)
+    return _make_payout(array_len - 1, mapping_ref, current_round, base_payout, token_address)
 end
 
 # ## Internal function
@@ -443,25 +458,24 @@ func increment_round{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_che
     return ()
 end
 
-
-func _get_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(array_len: felt, array : felt*, mapping_ref: felt) -> ():
+func _get_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        array_len : felt, array : felt*, mapping_ref : felt) -> ():
     if array_len == 0:
         return ()
     end
-    
+
     let (invoke_args : felt*) = alloc()
-    assert invoke_args[0] = array_len # invoke expect a pointer as arg
+    assert invoke_args[0] = array_len  # invoke expect a pointer as arg
     let val : felt = invoke(mapping_ref, 1, invoke_args)
     assert array[array_len] = val
 
-    return _get_array(array_len-1, array, mapping_ref)
+    return _get_array(array_len - 1, array, mapping_ref)
 end
 
-func _get_current_balance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(erc20_address : felt ) -> (balance : Uint256):
+func _get_current_balance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        erc20_address : felt) -> (balance : Uint256):
     let (contract_address : felt) = get_contract_address()
     let (balance : Uint256) = IERC20.balanceOf(erc20_address, contract_address)
 
     return (balance)
 end
-
-###
