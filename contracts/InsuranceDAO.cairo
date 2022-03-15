@@ -5,7 +5,7 @@ from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.invoke import invoke
 from starkware.cairo.common.registers import get_label_location
 from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt, assert_le
-from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_lt, uint256_add, uint256_eq, uint256_unsigned_div_rem
+from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_lt, uint256_add, uint256_eq, uint256_unsigned_div_rem, uint256_mul
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
 from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
@@ -313,10 +313,9 @@ func make_payment{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
         amount : Uint256, _payee : felt) -> ():
     alloc_locals
     Ownable_only_owner()
-    let (usdc_address : felt) = usdc_contract_address.read()
-    let (contract_address : felt) = get_contract_address()
-    let (balance : Uint256) = IERC20.balanceOf(usdc_address, contract_address)
 
+    let (usdc_address : felt) = usdc_contract_address.read()
+    let (balance : Uint256) = _get_current_balance(usdc_address)
     with_attr error_message("insufficient funds"):
         let is_balance_gt_amount : felt = uint256_le(amount, balance)
         assert is_balance_gt_amount = TRUE
@@ -389,9 +388,51 @@ end
 
 @external
 func make_dao_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
+    alloc_locals
     Ownable_only_owner()
     let (current_round : felt) = round.read()
+    let (current_round_dao_members_length : felt) = dao_members_length.read(current_round)
+    with_attr error_message("must be at least one member in the DAO"):
+        assert_not_zero(current_round_dao_members_length)
+    end
+
+    let (usdc_address : felt) = usdc_contract_address.read()
+    let (balance : Uint256) = _get_current_balance(usdc_address)
+    let (current_total_levels : felt) = total_levels.read()
+    let (base_payout : Uint256, _) = uint256_unsigned_div_rem(balance, Uint256(0, current_total_levels))
+
+    let (length : felt) = dao_members_length.read(current_round)
+    let (mapping_ref : felt) = get_label_location(dao_members.read)
+
+    _make_payout(length, mapping_ref, current_round, base_payout, usdc_address)
+
+    round.write(current_round+1)
     return ()
+end
+
+func _make_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(array_len: felt, mapping_ref: felt, current_round : felt, base_payout : Uint256, token_address : felt) -> ():
+    alloc_locals
+    if array_len == 0:
+        return ()
+    end
+
+    let (payment_level : felt) = payment_levels.read(current_round, array_len + 1)
+    let (val : Uint256, high : Uint256) = uint256_mul(Uint256(0, payment_level), base_payout)
+
+    let (not_overflow : felt ) = uint256_eq(high, Uint256(0,0))
+    assert_not_zero(not_overflow)
+
+    let (invoke_args : felt*) = alloc()
+    assert invoke_args[0] = current_round
+    assert invoke_args[1] = array_len
+    let _member : felt = invoke(mapping_ref, 2, invoke_args)
+
+    with_attr error_message("payment failed"):
+        let (success : felt) = IERC20.transfer(token_address, _member, val)
+        assert success = TRUE
+    end
+
+    return _make_payout(array_len -1, mapping_ref, current_round, base_payout, token_address)
 end
 
 # ## Internal function
@@ -408,12 +449,19 @@ func _get_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_pt
         return ()
     end
     
-    let (array_length_ptr : felt*) = alloc()
-    assert array_length_ptr[0] = array_len # invoke expect a pointer as arg
-    let val : felt = invoke(mapping_ref, 1, array_length_ptr)
+    let (invoke_args : felt*) = alloc()
+    assert invoke_args[0] = array_len # invoke expect a pointer as arg
+    let val : felt = invoke(mapping_ref, 1, invoke_args)
     assert array[array_len] = val
 
     return _get_array(array_len-1, array, mapping_ref)
+end
+
+func _get_current_balance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(erc20_address : felt ) -> (balance : Uint256):
+    let (contract_address : felt) = get_contract_address()
+    let (balance : Uint256) = IERC20.balanceOf(erc20_address, contract_address)
+
+    return (balance)
 end
 
 ###
