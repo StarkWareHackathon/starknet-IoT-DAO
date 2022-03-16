@@ -312,12 +312,81 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
 end
 
 @external
-func set_cost_schedule{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
+func set_cost_schedule{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
+        costs_len : felt, costs : Uint256*, rating_breaks_len : felt, rating_breaks : felt*) -> ():
+    Ownable_only_owner()
+    let (current_round : felt) = round.read()
+    let (current_round_dao_members_length : felt) = dao_members_length.read(current_round)
+    with_attr error_message("already members for this round"):
+        assert current_round_dao_members_length = 0
+    end
+
+    with_attr error_message("no costs"):
+        assert_not_zero(costs_len)
+    end
+
+    with_attr error_message("unequal arrays"):
+        assert costs_len = rating_breaks_len
+    end
+
+    let (valid_costs : felt) = _check_valid_costs(costs_len, costs, rating_breaks, Uint256(0, 0), 0)
+
+    with_attr error_message("invalid costs or ratings"):
+        assert valid_costs = TRUE
+    end
+
+    let (cost_schedule_write_ptr : felt) = get_label_location(cost_schedule.write)
+    _write_to_array(costs_len, costs, cost_schedule_write_ptr)
+    cost_schedule_length.write(costs_len)
+
+    let (rating_average_breaks_ptr : felt) = get_label_location(rating_average_breaks.write)
+    _write_to_array(rating_breaks_len, costs, rating_average_breaks_ptr)
+    rating_average_breaks_length.write(rating_breaks_len)
+
     return ()
 end
 
+func _check_valid_costs{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
+        costs_len : felt, costs : Uint256*, rating_breaks : felt*, max_cost : Uint256,
+        max_rating : felt) -> (valid : felt):
+    let is_less_than_max_cost : felt = uint256_lt(costs[costs_len], max_cost)
+    if is_less_than_max_cost == TRUE:
+        return (0)
+    end
+
+    let is_rating_le_than_max : felt = assert_le(rating_breaks[costs_len], max_rating)
+    if is_rating_le_than_max == TRUE:
+        return (0)
+    end
+
+    if costs_len == 0:
+        return (1)
+    end
+    return _check_valid_costs(
+        costs_len, costs, rating_breaks, costs[costs_len], rating_breaks[costs_len])
+end
+
 @external
-func set_penalties{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
+func set_penalties{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
+        levels_len : felt, levels : felt*, penalties_len : felt, penalties : felt*) -> ():
+    Ownable_only_owner()
+    let (current_round : felt) = round.read()
+    let (current_round_dao_members_length : felt) = dao_members_length.read(current_round)
+    with_attr error_message("already members for this round"):
+        assert current_round_dao_members_length = 0
+    end
+
+    with_attr error_message("arr lengths"):
+        assert levels_len = penalties_len
+    end
+
+    let (acc_levels_write_ptr : felt) = get_label_location(acc_levels.write)
+    _write_to_array(levels_len, levels, acc_levels_write_ptr)
+    acc_levels_length.write(levels_len)
+
+    let (penalty_levels_write_ptr : felt) = get_label_location(penalty_levels.write)
+    _write_to_array(penalties_len, penalties, penalty_levels_write_ptr)
+    penalty_levels_length.write(penalties_len)
     return ()
 end
 
@@ -470,6 +539,20 @@ func _get_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_pt
     assert array[array_len] = val
 
     return _get_array(array_len - 1, array, mapping_ref)
+end
+
+func _write_to_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        array_len : felt, array : felt*, mapping_ref : felt) -> ():
+    let (invoke_args : felt*) = alloc()
+    assert invoke_args[0] = array_len
+    assert invoke_args[1] = array[array_len]
+    invoke(mapping_ref, 2, invoke_args)
+
+    if array_len == 0:
+        return ()
+    end
+
+    return _write_to_array(array_len - 1, array, mapping_ref)
 end
 
 func _get_current_balance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
