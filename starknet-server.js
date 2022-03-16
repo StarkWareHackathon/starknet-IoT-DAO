@@ -12,11 +12,14 @@ const { ethers } = require("ethers");
 const { spawn } = require('child_process')
 const fs = require('fs');
 const fetch = require('cross-fetch');
+const CID = require('cids');
 const axios = require('axios');
 const pinata = pinataSDK(process.env.PERSONAL_PINATA_PUBLIC_KEY, process.env.PERSONAL_PINATA_SECRET_KEY);
 const projectID = process.env.PROJECT_ID;
 const testNet = process.env.TEST_NET;
 const signingKey = process.env.PRIVATE_KEY;
+const starknetPrivKey = process.env.SERVER_STARKNET_PRIVATE_KEY;
+
 
 const app = express(); 
 const upload = multer({dest: 'uploads/'})
@@ -147,7 +150,7 @@ app.get('/mint/:address', async (req, res) => {
   }
   else{
     const deviceIMEI = addressIMEI[address];
-    fs.readFile('./backupData.json', 'utf8', async (err, data) => {
+    fs.readFile('./backupDataStarknet.json', 'utf8', async (err, data) => {
 
       if (err) {
           console.log(`Error reading file from disk: ${err}`);
@@ -158,11 +161,11 @@ app.get('/mint/:address', async (req, res) => {
           const dataObj = JSON.parse(data);
   
           const timestamps = dataObj['timestamps'];
-          while(index < 400 && timestamps[index]< start){
+          while(index < 1000 && timestamps[index]< start){
               index++;
           }
           console.log(`index is ${index} and runs is ${runs}`);
-          if(index + Number(runs) >= 400){
+          if(index + Number(runs) >= 1000){
             console.log('in here')
           return res.send({success : false, reason : "not enough records for this"})
           }
@@ -216,6 +219,22 @@ app.get('/mint/:address', async (req, res) => {
 
           const tokenFile = await uploadJSONPinata(tokenJSON);
           const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
+          const base16Hash = new CID(tokenFile.IpfsHash).toV1().toString('base16');
+          //verify with base16Hash.slice(9)
+          let inputArgs = [5, 20]
+          const python = spawn('bash', ['./python-sign.sh', ...inputArgs])
+          let signature_vars = []
+
+          // collect data from script
+          python.stdout.on('data', function (data) {
+            console.log('Pipe data from python script ...')
+            signature_vars.push(data)
+          })
+
+          // in close event we are sure that stream is from child process is closed
+          python.on('close', (code) => {
+            console.log(`child process close all stdio with code ${code}`)
+          })
 
           console.log(`${nonce} and ${address} and ${Verify.networks[chainId].address} and ${timestamp} and ${tokenURI}`)
 
@@ -332,10 +351,10 @@ const ethersSign = async function (wallet, hash) {
   return sig
 }
 
-//Local Data in case TruStream is having issues
+//Local address data map
 const addressIMEI = {
-  "0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631" : "100000000000019",
-  "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca" : "100000000000023",
-  "0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91" : "100000000000024",
-  "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c" : "100000000000025"
+  "0x07f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
+  "0x06fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
+  "0x051df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
+  "0x07da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
 }
