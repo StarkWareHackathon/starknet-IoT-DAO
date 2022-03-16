@@ -7,4 +7,4 @@ priv_key = 10000000
 r,s = sign(
     msg_hash = pedersen_hash(int(sys.argv[1]), int(sys.argv[2])),
     priv_key = priv_key)
-
+print(r, s, sep=', ')
