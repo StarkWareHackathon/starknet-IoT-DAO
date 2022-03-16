@@ -269,10 +269,9 @@ func mint{
         pedersen_ptr: HashBuiltin*,
         syscall_ptr: felt*,
         range_check_ptr
-    }(ipfs_uri_hex : Uint256, last_time_stamp : Uint256, r : felt, s : felt, v : felt):
+    }(ipfs_uri_hex : Uint256, last_time_stamp : Uint256, to : felt, r : felt, s : felt, v : felt):
     alloc_locals
     #let (to : felt) = get_caller_address()
-    let to = 10
     let (curr_id : Uint256) = current_token_id.read()
     let (tokenId : Uint256, carry : felt) = uint256_add( curr_id, Uint256(1,0))
     ERC721_mint(to, tokenId)
