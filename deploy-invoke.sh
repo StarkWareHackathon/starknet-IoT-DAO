@@ -1,5 +1,5 @@
 #!/bin/bash
-output=$(starknet deploy --contract artifacts/InsuranceNFT.json --inputs 20 20 3 97 98 99 20 20  --network alpha-goerli)
+output=$(starknet deploy --contract artifacts/InsuranceNFT.json --inputs 381295704707908511112352986844521317 314863540297 1 64448631328 20 20  --network alpha-goerli)
 echo $output
 deploy_tx_id=$(echo $output | sed -r "s/.*Transaction ID: (\w*).*/\1/")
 address=$(echo $output | sed -r "s/.*Contract address: (\w*).*/\1/")
