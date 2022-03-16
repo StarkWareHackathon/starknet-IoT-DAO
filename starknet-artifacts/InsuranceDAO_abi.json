@@ -240,7 +240,24 @@
         "type": "function"
     },
     {
-        "inputs": [],
+        "inputs": [
+            {
+                "name": "levels_len",
+                "type": "felt"
+            },
+            {
+                "name": "levels",
+                "type": "felt*"
+            },
+            {
+                "name": "penalties_len",
+                "type": "felt"
+            },
+            {
+                "name": "penalties",
+                "type": "felt*"
+            }
+        ],
         "name": "set_penalties",
         "outputs": [],
         "type": "function"

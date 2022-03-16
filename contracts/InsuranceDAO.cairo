@@ -337,9 +337,12 @@ func set_cost_schedule{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_c
 
     let (cost_schedule_write_ptr : felt) = get_label_location(cost_schedule.write)
     _write_to_array(costs_len, costs, cost_schedule_write_ptr)
+    cost_schedule_length.write(costs_len)
 
     let (rating_average_breaks_ptr : felt) = get_label_location(rating_average_breaks.write)
-    _write_to_array(costs_len, costs, rating_average_breaks_ptr)
+    _write_to_array(rating_breaks_len, costs, rating_average_breaks_ptr)
+    rating_average_breaks_length.write(rating_breaks_len)
+
     return ()
 end
 
@@ -364,7 +367,26 @@ func _check_valid_costs{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_
 end
 
 @external
-func set_penalties{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
+func set_penalties{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
+        levels_len : felt, levels : felt*, penalties_len : felt, penalties : felt*) -> ():
+    Ownable_only_owner()
+    let (current_round : felt) = round.read()
+    let (current_round_dao_members_length : felt) = dao_members_length.read(current_round)
+    with_attr error_message("already members for this round"):
+        assert current_round_dao_members_length = 0
+    end
+
+    with_attr error_message("arr lengths"):
+        assert levels_len = penalties_len
+    end
+
+    let (acc_levels_write_ptr : felt) = get_label_location(acc_levels.write)
+    _write_to_array(levels_len, levels, acc_levels_write_ptr)
+    acc_levels_length.write(levels_len)
+
+    let (penalty_levels_write_ptr : felt) = get_label_location(penalty_levels.write)
+    _write_to_array(penalties_len, penalties, penalty_levels_write_ptr)
+    penalty_levels_length.write(penalties_len)
     return ()
 end
 
