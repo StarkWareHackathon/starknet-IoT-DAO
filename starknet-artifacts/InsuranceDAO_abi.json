@@ -1,0 +1,286 @@
+[
+    {
+        "members": [
+            {
+                "name": "low",
+                "offset": 0,
+                "type": "felt"
+            },
+            {
+                "name": "high",
+                "offset": 1,
+                "type": "felt"
+            }
+        ],
+        "name": "Uint256",
+        "size": 2,
+        "type": "struct"
+    },
+    {
+        "inputs": [
+            {
+                "name": "verify_address",
+                "type": "felt"
+            }
+        ],
+        "name": "constructor",
+        "outputs": [],
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "name": "index",
+                "type": "felt"
+            }
+        ],
+        "name": "get_penalty_levels",
+        "outputs": [
+            {
+                "name": "array_len",
+                "type": "felt"
+            },
+            {
+                "name": "array",
+                "type": "felt*"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "index",
+                "type": "felt"
+            }
+        ],
+        "name": "get_acc_levels",
+        "outputs": [
+            {
+                "name": "array_len",
+                "type": "felt"
+            },
+            {
+                "name": "array",
+                "type": "felt*"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "index",
+                "type": "felt"
+            }
+        ],
+        "name": "get_costs",
+        "outputs": [
+            {
+                "name": "array_len",
+                "type": "felt"
+            },
+            {
+                "name": "array",
+                "type": "felt*"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "index",
+                "type": "felt"
+            }
+        ],
+        "name": "get_ratings",
+        "outputs": [
+            {
+                "name": "array_len",
+                "type": "felt"
+            },
+            {
+                "name": "array",
+                "type": "felt*"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "get_current_round",
+        "outputs": [
+            {
+                "name": "res",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "round",
+                "type": "felt"
+            },
+            {
+                "name": "index",
+                "type": "felt"
+            }
+        ],
+        "name": "get_dao_members",
+        "outputs": [
+            {
+                "name": "res",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "get_payout_cap",
+        "outputs": [
+            {
+                "name": "res",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "address",
+                "type": "felt"
+            }
+        ],
+        "name": "set_usdc_contract_address",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "nft_contract",
+                "type": "felt"
+            }
+        ],
+        "name": "set_nft_contract",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "new_label",
+                "type": "felt"
+            },
+            {
+                "name": "index",
+                "type": "felt"
+            }
+        ],
+        "name": "set_label",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "level",
+                "type": "felt"
+            },
+            {
+                "name": "token_id",
+                "type": "felt"
+            },
+            {
+                "name": "timestamp",
+                "type": "felt"
+            },
+            {
+                "name": "signature",
+                "type": "felt"
+            }
+        ],
+        "name": "add_to_dao",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "costs_len",
+                "type": "felt"
+            },
+            {
+                "name": "costs",
+                "type": "Uint256*"
+            },
+            {
+                "name": "rating_breaks_len",
+                "type": "felt"
+            },
+            {
+                "name": "rating_breaks",
+                "type": "felt*"
+            }
+        ],
+        "name": "set_cost_schedule",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "levels_len",
+                "type": "felt"
+            },
+            {
+                "name": "levels",
+                "type": "felt*"
+            },
+            {
+                "name": "penalties_len",
+                "type": "felt"
+            },
+            {
+                "name": "penalties",
+                "type": "felt*"
+            }
+        ],
+        "name": "set_penalties",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_payee",
+                "type": "felt"
+            }
+        ],
+        "name": "make_payment",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "make_dao_payout",
+        "outputs": [],
+        "type": "function"
+    }
+]
