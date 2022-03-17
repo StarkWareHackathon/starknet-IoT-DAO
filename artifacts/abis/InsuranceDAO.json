@@ -217,6 +217,18 @@
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "set_cost_schedule",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "set_penalties",
+        "outputs": [],
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "name": "amount",
