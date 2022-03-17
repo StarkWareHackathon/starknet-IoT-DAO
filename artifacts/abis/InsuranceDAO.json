@@ -219,6 +219,52 @@
     {
         "inputs": [
             {
+                "name": "costs_len",
+                "type": "felt"
+            },
+            {
+                "name": "costs",
+                "type": "Uint256*"
+            },
+            {
+                "name": "rating_breaks_len",
+                "type": "felt"
+            },
+            {
+                "name": "rating_breaks",
+                "type": "felt*"
+            }
+        ],
+        "name": "set_cost_schedule",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "levels_len",
+                "type": "felt"
+            },
+            {
+                "name": "levels",
+                "type": "felt*"
+            },
+            {
+                "name": "penalties_len",
+                "type": "felt"
+            },
+            {
+                "name": "penalties",
+                "type": "felt*"
+            }
+        ],
+        "name": "set_penalties",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
                 "name": "amount",
                 "type": "Uint256"
             },
