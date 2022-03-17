@@ -1,41 +1,45 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AccountContext } from '../../state/contexts/AccountContext';
-import { getStarknet } from "@argent/get-starknet"
+// import React, { useState, useEffect, useContext } from 'react';
+// import { AccountContext } from '../../state/contexts/AccountContext';
 
-export const useArgentX = (props) => {
-  const { globalAccount, setGlobalAccount, globalActive, setGlobalActive } = useContext(AccountContext);
-  const [connected, setConnected] = useState(false);
+// import {
+//   useContract,
+//   useStarknet,
+//   InjectedConnector
+// } from '@starknet-react/core'
 
-  // Not sure if we need the active call or not
-  useEffect(() => {
-    if (true) {
-      setGlobalActive(true);
-    }
-    else {
-      setGlobalActive(false);
-    }
-  }, [])
+// export const useArgentX = (props) => {
+//   const { globalAccount, setGlobalAccount, globalActive, setGlobalActive } = useContext(AccountContext);
+//   const [connected, setConnected] = useState(false);
+//   // const { account, connect } = useStarknet()
+//   // Not sure if we need the active call or not
+//   useEffect(() => {
+//     if (true) {
+//       setGlobalActive(true);
+//     }
+//     else {
+//       setGlobalActive(false);
+//     }
+//   }, [])
 
-  const connectToArgentX = async () => {
-    console.log("in connectToArgentX")
-    // Check if wallet extension is installed and initialized.
-    const starknet = getStarknet()
-    const [userWalletContractAddress] = await starknet.enable({ showModal: true })
+//   const connectToArgentX = async () => {
+//     console.log("in connectToArgentX")
+//     // Check if wallet extension is installed and initialized.
 
-    if (userWalletContractAddress) {
-      setGlobalAccount(userWalletContractAddress)
-      console.log(userWalletContractAddress, 'userWalletContractAddress')
-    } else {
-      console.log("ARGENTX NOT DETECTED")
-    }
-  }
 
-  return {
-    globalAccount,
-    setGlobalAccount,
-    connectToArgentX,
-    setGlobalActive,
-    connected,
-    setConnected
-  }
-}
+//     if (connect(new InjectedConnector())) {
+//       setGlobalAccount(account)
+//       console.log(account, 'account')
+//     } else {
+//       console.log("ARGENTX NOT DETECTED")
+//     }
+//   }
+
+//   return {
+//     globalAccount,
+//     setGlobalAccount,
+//     connectToArgentX,
+//     setGlobalActive,
+//     connected,
+//     setConnected
+//   }
+// }

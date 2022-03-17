@@ -8,7 +8,6 @@ import FeatureBox from '../components/FeatureBox';
 
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from '@web3-react/injected-connector'
-import { useArgentX } from "../../state/hooks/useArgentX";
 
 // import { AccountContext } from '../../state/contexts/AccountContext';
 // import { useStarknet } from '@starknet-react/core';
@@ -113,7 +112,7 @@ const GlobalStyles = createGlobalStyle`
 `;
 
 const Landing = () => {
-  const argentX = useArgentX();
+  // const argentX = useArgentX();
 
   return (
     <div>
@@ -126,12 +125,12 @@ const Landing = () => {
       <section className='container no-bottom'>
         <div className="row">
           <div className="col-lg-2 col-sm-4 col-6 mb30" >
-            <span className="box-url" onClick={() => argentX.connectToArgentX()}>
+            {/* <span className="box-url" onClick={() => argentX.connectToArgentX()}>
 
               <img src="./img/wallet/argent.svg" alt="" className="mb20" />
 
               <h4>Argent {argentX.globalAccount && <span>{`${argentX.globalAccount.slice(0, 5)}...${argentX.globalAccount.slice(-4)}`}</span>}</h4>
-            </span>
+            </span> */}
           </div>
 
           <div className="col-lg-2 col-sm-4 col-6 mb30">

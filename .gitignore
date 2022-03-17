@@ -1,6 +1,7 @@
 cache
 node_modules
 .env
+.DS_Store
 coverage
 coverage.json
 typechain
