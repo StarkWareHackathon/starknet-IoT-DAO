@@ -3,8 +3,13 @@ import Breakpoint, { BreakpointProvider, setDefaultBreakpoints } from "react-soc
 import { header } from 'react-bootstrap';
 import { Link } from '@reach/router';
 import useOnclickOutside from "react-cool-onclickoutside";
+import { AccountContext } from '../../state/contexts/AccountContext';
 
-import { useArgentX } from "../../state/hooks/useArgentX";
+import {
+  useContract,
+  useStarknet,
+  InjectedConnector
+} from '@starknet-react/core'
 
 setDefaultBreakpoints([
   { xs: 0 },
@@ -27,23 +32,24 @@ const NavLink = props => (
 
 
 const Header = function () {
-
+  const { account, connect } = useStarknet()
   const [openMenu, setOpenMenu] = React.useState(false);
   const [openMenu1, setOpenMenu1] = React.useState(false);
   const [openMenu2, setOpenMenu2] = React.useState(false);
   const [openMenu3, setOpenMenu3] = React.useState(false);
-
-  const argentX = useArgentX();
+  const { setGlobalAccount } = useContext(AccountContext);
 
   useEffect(() => {
-    if (argentX.globalAccount) {
-      argentX.setConnected(true)
+    if (account) {
+      setGlobalAccount(account)
     }
-  }, [argentX.connectToArgentX])
+  }, [account])
 
   const disconnect = () => {
-    argentX.setConnected(false)
-    argentX.setGlobalAccount('')
+    setGlobalAccount('')
+    console.log("disconnect")
+    //   argentX.setConnected(false)
+    //   argentX.setGlobalAccount('')
   }
 
 
@@ -203,13 +209,9 @@ const Header = function () {
             </Breakpoint>
           </BreakpointProvider>
           <div className='mainside'>
-            {argentX.connected && <p style={{ color: "white" }}>Account: {`${argentX.globalAccount.toString().slice(0, 6)}...${argentX.globalAccount.toString().slice(-4)}`}</p>}
-            {argentX.connected ? <button onClick={() => disconnect()} className="btn-main">Disconnect</button> : <button className="btn-main" onClick={() => argentX.connectToArgentX()}>Connect</button>}
+            {account && <p style={{ color: "white" }}>Account: {account}</p>}
+            {account ? null : <button className="btn-main" onClick={() => connect(new InjectedConnector())}>Connect</button>}
           </div>
-          {/*<div className='mainside'>
-            {globalActive ? <button onClick={disconnect} className="btn-main">Disconnect</button> : <button onClick={connect} className="btn-main">Connect</button>}
-            </div>*/}
-
         </div>
 
         <button className="nav-icon" onClick={() => btn_icon(!showmenu)}>
