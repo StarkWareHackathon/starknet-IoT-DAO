@@ -7,11 +7,12 @@ import Footer from '../components/Footer';
 import FeatureBox from '../components/FeatureBox';
 
 import { useWeb3React } from "@web3-react/core";
-import { InjectedConnector } from '@web3-react/injected-connector'
-import { useArgentX } from "../../state/hooks/useArgentX";
+import {
+  useStarknet,
+  InjectedConnector
+} from '@starknet-react/core'
 
-// import { AccountContext } from '../../state/contexts/AccountContext';
-// import { useStarknet } from '@starknet-react/core';
+
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader .logo .d-block{
@@ -113,7 +114,7 @@ const GlobalStyles = createGlobalStyle`
 `;
 
 const Landing = () => {
-  const argentX = useArgentX();
+  const { account, connect } = useStarknet()
 
   return (
     <div>
@@ -126,11 +127,11 @@ const Landing = () => {
       <section className='container no-bottom'>
         <div className="row">
           <div className="col-lg-2 col-sm-4 col-6 mb30" >
-            <span className="box-url" onClick={() => argentX.connectToArgentX()}>
+            <span className="box-url" onClick={() => connect(new InjectedConnector())}>
 
               <img src="./img/wallet/argent.svg" alt="" className="mb20" />
 
-              <h4>Argent {argentX.globalAccount && <span>{`${argentX.globalAccount.slice(0, 5)}...${argentX.globalAccount.slice(-4)}`}</span>}</h4>
+              <h4>Argent {account && <span>{`${account.slice(0, 5)}...${account.slice(-4)}`}</span>}</h4>
             </span>
           </div>
 
