@@ -40,7 +40,7 @@ from openzeppelin.access.ownable import (
 @contract_interface
 namespace IVerify:
     func meta_data_verify(
-            address : felt, level : felt, token_id : felt, timestamp : felt, sig_r : felt, sig_s : felt) -> (
+            address : felt, level : felt, ipfs_uri : Uint256, timestamp : Uint256, sig_r : felt, sig_s : felt) -> (
             res : felt):
     end
 end
@@ -198,6 +198,14 @@ func currentId{syscall_ptr: felt*,
     return (last_id = last_id)
 end
 
+@view
+func getLastTimestamp{syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }(address : felt) -> (last_timestamp : Uint256):
+    let (last_timestamp : Uint256) = last_timestamp_nft_used.read(address)
+    return (last_timestamp = last_timestamp)
+end
 
 #
 # Externals
@@ -277,6 +285,7 @@ func mint{
     ERC721_mint(to, tokenId)
     current_token_id.write(tokenId)
     ipfs_uri_by_token.write(tokenId, ipfs_uri_hex)
+    last_timestamp_nft_used.write(to, last_time_stamp)
     return ()
 end
 

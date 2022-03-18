@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 6000;
-const {exec} = require('child_process');
+const port = process.env.PORT || 5000;
+const {spawn, exec} = require('child_process');
 const fs = require('fs');
 const EC = require('elliptic').ec;
 const keccak256 = require('js-sha3').keccak256;
@@ -119,4 +119,25 @@ app.get('/deal_verify_final', (req, res) => {
     var dataLog = fs.readFileSync('./pebble.dat').toString().split("\n");
     
     res.send({dataVerify : dataLog});
+})
+
+app.get('/python_test', (req,res)=> {
+  var dataToSend;
+ // spawn new child process to call the python script
+ const python = spawn('python3', ['script1.py', `node.js`, `python`]);
+ // collect data from script
+ python.stdout.on('data', function (data) {
+  console.log('Pipe data from python script ...');
+  dataToSend = data.toString();
+ });
+
+ python.stderr.on('data', function(data) {
+  console.log(`Pipe error from python script ...${data}`);
+ })
+ // in close event we are sure that stream from child process is closed
+ python.on('close', (code) => {
+ console.log(`child process close all stdio with code ${code}`);
+ // send data to browser
+ res.send(dataToSend)
+ })
 })

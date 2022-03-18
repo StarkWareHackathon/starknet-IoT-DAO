@@ -36,10 +36,10 @@ for (var i =0; i<1000; i++){
 }
 
 writeObject['timestamps'] = timestamp;
-writeObject['0x07f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9'] = acceleration_1;
-writeObject['0x06fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8'] = acceleration_2;
-writeObject['0x051df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1'] = acceleration_3;
-writeObject['0x07da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328'] = acceleration_4;
+writeObject['100000000000019'] = acceleration_1;
+writeObject['100000000000023'] = acceleration_2;
+writeObject['100000000000024'] = acceleration_3;
+writeObject['100000000000025'] = acceleration_4;
 
 fs.writeFile('./backupDataStarknet.json', JSON.stringify(writeObject), 'utf8', (err) => {
 

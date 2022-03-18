@@ -9,6 +9,7 @@ const Web3 = require('web3');
 const pinataSDK = require('@pinata/sdk');
 const ethWallet = require('ethereumjs-wallet');
 const { ethers } = require("ethers");
+const { spawn } = require('child_process')
 const fs = require('fs');
 const fetch = require('cross-fetch');
 const axios = require('axios');

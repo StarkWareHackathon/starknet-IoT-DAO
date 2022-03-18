@@ -211,6 +211,7 @@ const Mint = function () {
 
   // }, [account, globalActive, globalAccount, globalChainId])
 
+
   function fileLoad(e) {
     var newFiles = e.target.files;
     console.log(newFiles);
@@ -251,6 +252,7 @@ const Mint = function () {
 
   const startMint = async () => {
     //checks to see if able to mint
+
     if (!account) {
       window.alert("connect with wallet");
       return;
@@ -445,6 +447,7 @@ const Mint = function () {
                 <div className="spacer-10"></div>
 
                 {deviceIMEI !== "" || account ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={() => invokeInsurance()} /> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={() => invokeInsurance()} /></span>}
+
                 {daoShow && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Join/Update Dao" onClick={() => joinUpdateDao()} /> &ensp; Rating: {daoRating} &ensp; Level: {daoLevel}</span>}
               </div>
             </form>

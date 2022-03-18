@@ -253,6 +253,23 @@
     {
         "inputs": [
             {
+                "name": "address",
+                "type": "felt"
+            }
+        ],
+        "name": "getLastTimestamp",
+        "outputs": [
+            {
+                "name": "last_timestamp",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
                 "name": "to",
                 "type": "felt"
             },
@@ -350,6 +367,10 @@
             {
                 "name": "last_time_stamp",
                 "type": "Uint256"
+            },
+            {
+                "name": "to",
+                "type": "felt"
             },
             {
                 "name": "r",
