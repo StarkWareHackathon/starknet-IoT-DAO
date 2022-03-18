@@ -6,7 +6,7 @@ from starkware.cairo.common.invoke import invoke
 from starkware.cairo.common.registers import get_label_location
 from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt, assert_le
 from starkware.cairo.common.uint256 import (
-    Uint256, uint256_le, uint256_lt, uint256_add, uint256_eq, uint256_unsigned_div_rem, uint256_mul)
+    Uint256, uint256_le, uint256_lt, uint256_add, uint256_sub, uint256_eq, uint256_unsigned_div_rem, uint256_mul)
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
 from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
@@ -283,16 +283,30 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
         levels_entered.write(current_round, caller_address, level)
         payment_levels.write(current_round, caller_address, new_level_payout)
 
+        let (a : Uint256) = cost_schedule.read(prior_level - 1)
+        let (b : Uint256) = cost_schedule.read(level - 1)
+        let (rebate : Uint256) = uint256_sub(a, b)
+        let (need_refund : felt) = uint256_lt(Uint256(0,0), rebate)
+        
+        if need_refund == TRUE:
+            IERC20.transfer(usdc_address, caller_address, rebate)
+            tempvar syscall_ptr : felt* = syscall_ptr
+            tempvar range_check_ptr = range_check_ptr
+        else:
+            tempvar syscall_ptr : felt* = syscall_ptr
+            tempvar range_check_ptr = range_check_ptr
+        end
+
         tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
         tempvar syscall_ptr : felt* = syscall_ptr
         tempvar range_check_ptr = range_check_ptr
     else:
         # new members
-        let transaction_value : Uint256 = Uint256(0, 10)  # # TODO: Refactor
         let (scheduled_cost : Uint256) = cost_schedule.read(level - 1)
+        let (success : felt) = IERC20.transferFrom(usdc_address, caller_address, contract_address, scheduled_cost)
+
         with_attr error_message("insufficent payment"):
-            let (is_cost_paid : felt) = uint256_eq(scheduled_cost, transaction_value)
-            assert is_cost_paid = TRUE
+            assert success = TRUE
         end
         levels_entered.write(current_round, caller_address, level)
         payment_levels.write(current_round, caller_address, new_level_payout)
@@ -308,6 +322,7 @@ func add_to_dao{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_pt
     current_token_id_for_addr.write(current_round, caller_address, token_id)
     let (current_total_levels : felt) = total_levels.read()
     total_levels.write(current_total_levels + new_level_payout)
+
     return ()
 end
 
