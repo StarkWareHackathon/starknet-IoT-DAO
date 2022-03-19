@@ -21,6 +21,18 @@
             {
                 "name": "verify_address",
                 "type": "felt"
+            },
+            {
+                "name": "owner",
+                "type": "felt"
+            },
+            {
+                "name": "label_arr_len",
+                "type": "felt"
+            },
+            {
+                "name": "label_arr",
+                "type": "felt*"
             }
         ],
         "name": "constructor",
@@ -151,6 +163,18 @@
             {
                 "name": "res",
                 "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "get_owner",
+        "outputs": [
+            {
+                "name": "res",
+                "type": "felt"
             }
         ],
         "stateMutability": "view",

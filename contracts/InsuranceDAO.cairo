@@ -9,7 +9,7 @@ from starkware.cairo.common.uint256 import (
     Uint256, uint256_le, uint256_lt, uint256_add, uint256_sub, uint256_eq, uint256_unsigned_div_rem, uint256_mul)
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
-from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
+from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner, Ownable_get_owner
 from contracts.openzeppelin.token.erc20.interfaces.IERC20 import IERC20
 from contracts.openzeppelin.utils.constants import TRUE
 
@@ -92,6 +92,10 @@ func rating_labels(index : felt) -> (res : felt):
 end
 
 @storage_var
+func rating_labels_len() -> (res : felt):
+end
+
+@storage_var
 func current_token_id_for_addr(index : felt, address : felt) -> (res : felt):
 end
 ###
@@ -119,13 +123,27 @@ end
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        verify_address : felt):
-    let (owner : felt) = get_caller_address()
+        verify_address : felt, owner : felt, label_arr_len : felt, label_arr : felt*):
+    #let (owner : felt) = get_caller_address()
     Ownable_initializer(owner)
     assert_not_zero(verify_address)
     verify_contract_address.write(verify_address)
-    payout_cap.write(Uint256(0, 5))
-    return ()
+    round.write(1)
+    payout_cap.write(Uint256(5000000, 0))#added in decimals to make it more realistic
+    #_write_labels(label_arr_len, label_arr, 0)
+    rating_labels_len.write(label_arr_len)
+    return()
+end
+
+func _write_labels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        arr_len : felt, arr : felt*, counter : felt) -> ():
+        let is_arr_len_le_counter : felt = assert_le(arr_len, counter)
+        if is_arr_len_le_counter == TRUE:
+            return()
+        end
+
+        rating_labels.write(counter, arr[counter])
+        return _write_labels(arr_len = arr_len, arr = arr, counter = counter + 1)
 end
 
 # ## Getters
@@ -197,6 +215,13 @@ func get_payout_cap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
     let (res : Uint256) = payout_cap.read()
     return (res)
 end
+
+@view
+func get_owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+        res : felt):
+    return Ownable_get_owner()
+end
+
 ###
 
 # ## Setters

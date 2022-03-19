@@ -209,7 +209,7 @@ const Header = function () {
             </Breakpoint>
           </BreakpointProvider>
           <div className='mainside'>
-            {account && <p style={{ color: "white" }}>Account: {account}</p>}
+            {account && <p style={{ color: "white" }}>Account: {`${account.slice(0,5)}...${account.slice(-4)}`}</p>}
             {account ? null : <button className="btn-main" onClick={() => connect(new InjectedConnector())}>Connect</button>}
           </div>
         </div>
