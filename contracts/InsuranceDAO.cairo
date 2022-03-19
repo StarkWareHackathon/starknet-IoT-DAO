@@ -378,7 +378,7 @@ func _check_valid_costs{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_
         return (1)
     end
     return _check_valid_costs(
-        costs_len, costs, rating_breaks, costs[costs_len], rating_breaks[costs_len])
+        costs_len-1, costs, rating_breaks, costs[costs_len], rating_breaks[costs_len])
 end
 
 @external
