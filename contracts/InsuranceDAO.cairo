@@ -9,7 +9,7 @@ from starkware.cairo.common.uint256 import (
     Uint256, uint256_le, uint256_lt, uint256_add, uint256_sub, uint256_eq, uint256_unsigned_div_rem, uint256_mul)
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
-from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
+from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner, Ownable_get_owner
 from contracts.openzeppelin.token.erc20.interfaces.IERC20 import IERC20
 from contracts.openzeppelin.utils.constants import TRUE
 
@@ -119,8 +119,7 @@ end
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        verify_address : felt):
-    let (owner : felt) = get_caller_address()
+        verify_address : felt, owner : felt):
     Ownable_initializer(owner)
     assert_not_zero(verify_address)
     verify_contract_address.write(verify_address)
@@ -129,6 +128,12 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 end
 
 # ## Getters
+@view
+func get_owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (res : felt):
+    let (owner : felt) = Ownable_get_owner()
+    return (owner)
+end
+
 @view
 func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         index : felt) -> (array_len : felt, array : felt*):
@@ -378,7 +383,7 @@ func _check_valid_costs{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_
         return (1)
     end
     return _check_valid_costs(
-        costs_len, costs, rating_breaks, costs[costs_len], rating_breaks[costs_len])
+        costs_len-1, costs, rating_breaks, costs[costs_len], rating_breaks[costs_len])
 end
 
 @external

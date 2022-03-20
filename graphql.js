@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const { ApolloClient, HttpLink, DefaultOptions, InMemoryCache } = require('@apollo/client/core');
 const fetch = require('cross-fetch');
 const gql = require('graphql-tag');
