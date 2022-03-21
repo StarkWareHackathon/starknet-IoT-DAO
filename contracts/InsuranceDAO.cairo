@@ -135,8 +135,7 @@ func get_owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 end
 
 @view
-func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        index : felt) -> (array_len : felt, array : felt*):
+func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = penalty_levels_length.read()
     let (mapping_ref : felt) = get_label_location(penalty_levels.read)
@@ -147,8 +146,7 @@ func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
 end
 
 @view
-func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        index : felt) -> (array_len : felt, array : felt*):
+func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = acc_levels_length.read()
     let (mapping_ref : felt) = get_label_location(acc_levels.read)
@@ -159,7 +157,7 @@ func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
 end
 
 @view
-func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
+func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
         array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = cost_schedule_length.read()
@@ -171,8 +169,7 @@ func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 end
 
 @view
-func get_ratings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        index : felt) -> (array_len : felt, array : felt*):
+func get_ratings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = rating_average_breaks_length.read()
     let (mapping_ref : felt) = get_label_location(rating_average_breaks.read)
@@ -563,9 +560,12 @@ end
 
 func _write_to_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         array_len : felt, array : felt*, mapping_ref : felt) -> ():
+    tempvar index = array_len - 1
+    tempvar value_to_write = array[index]
+
     let (invoke_args : felt*) = alloc()
-    assert invoke_args[0] = array_len
-    assert invoke_args[1] = array[array_len]
+    assert invoke_args[0] = index
+    assert invoke_args[1] = value_to_write
     invoke(mapping_ref, 2, invoke_args)
 
     if array_len == 0:
