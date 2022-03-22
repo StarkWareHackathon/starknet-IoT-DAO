@@ -7,6 +7,8 @@
     "elegant-icons": "^0.0.1",
     "et-line": "^1.0.1",
     "font-awesome": "^4.7.0",
+    "hardhat": "2.9.1",
+    "mocha": "^9.2.2",
     "typescript": "^4.6.2"
   },
   "dependencies": {
@@ -27,6 +29,7 @@
     "@web3-react/injected-connector": "^6.0.7",
     "@web3-react/network-connector": "^6.1.9",
     "axios": "^0.23.0",
+    "chai": "^4.3.6",
     "cids": "^1.1.9",
     "cors": "^2.8.5",
     "cross-fetch": "^3.1.4",
@@ -39,9 +42,7 @@
     "graphql-tag": "^2.12.5",
     "js-sha3": "^0.8.0",
     "keccak": "^3.0.2",
-    "lodash": "^4.17.21",
     "multer": "^1.4.3",
-    "node-sass": "^5.0.0",
     "react": "^17.0.2",
     "react-awesome-reveal": "^3.8.1",
     "react-bootstrap": "^1.6.4",
@@ -64,7 +65,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "test-contracts": "NODE_ENV=local hh test",
+    "eject": "react-scripts eject",
+    "compile:InsuranceDAO": "starknet-compile ./contracts/InsuranceDAO.cairo --abi ./starknet-artifacts/InsuranceDAO_abi.json --output ./starknet-artifacts/InsuranceDAO.txt"
   },
   "eslintConfig": {
     "extends": [
