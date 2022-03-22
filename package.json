@@ -65,8 +65,7 @@
     "test": "react-scripts test",
     "test-contracts": "NODE_ENV=local hh test",
     "eject": "react-scripts eject",
-    "compile:InsuranceDAO": "starknet-compile ./contracts/InsuranceDAO.cairo --abi ./starknet-artifacts/InsuranceDAO_abi.json --output ./starknet-artifacts/InsuranceDAO.txt",
-    "compile:Account": "starknet-compile contracts/openzeppelin/account/Account.cairo --abi ./starknet-artifacts/Account_json.json --output ./starknet-artifacts/Account.txt --account"
+    "compile:InsuranceDAO": "starknet-compile ./contracts/InsuranceDAO.cairo --abi ./starknet-artifacts/InsuranceDAO_abi.json --output ./starknet-artifacts/InsuranceDAO.txt"
   },
   "eslintConfig": {
     "extends": [

@@ -549,11 +549,13 @@ func _get_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_pt
     if array_len == 0:
         return ()
     end
-
-    let (invoke_args : felt*) = alloc()
-    assert invoke_args[0] = array_len  # invoke expect a pointer as arg
-    let val : felt = invoke(mapping_ref, 1, invoke_args)
-    assert array[array_len] = val
+    
+    tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, array_len), felt*)
+    invoke(mapping_ref, 4, args)
+    let syscall_ptr = cast([ap - 4], felt*)
+    let pedersen_ptr = cast([ap - 3], HashBuiltin*)
+    let range_check_ptr = [ap - 2]
+    assert array[array_len] = [ap - 1]
 
     return _get_array(array_len - 1, array, mapping_ref)
 end
@@ -561,13 +563,14 @@ end
 func _write_to_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         array_len : felt, array : felt*, mapping_ref : felt) -> ():
     tempvar index = array_len - 1
-    tempvar value_to_write = array[index]
+    tempvar value_to_write = [array + index]
 
-    let (invoke_args : felt*) = alloc()
-    assert invoke_args[0] = index
-    assert invoke_args[1] = value_to_write
-    invoke(mapping_ref, 2, invoke_args)
 
+    tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, index, value_to_write), felt*)
+    invoke(mapping_ref, 5, args)
+    let syscall_ptr = cast([ap - 3], felt*)
+    let pedersen_ptr = cast([ap - 2], HashBuiltin*)
+    let range_check_ptr = [ap - 1]
     if array_len == 0:
         return ()
     end
