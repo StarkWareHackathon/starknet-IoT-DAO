@@ -9,7 +9,7 @@ from starkware.cairo.common.uint256 import (
     Uint256, uint256_le, uint256_lt, uint256_add, uint256_sub, uint256_eq, uint256_unsigned_div_rem, uint256_mul)
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
-from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner
+from contracts.openzeppelin.access.ownable import Ownable_initializer, Ownable_only_owner, Ownable_get_owner
 from contracts.openzeppelin.token.erc20.interfaces.IERC20 import IERC20
 from contracts.openzeppelin.utils.constants import TRUE
 
@@ -119,8 +119,7 @@ end
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        verify_address : felt):
-    let (owner : felt) = get_caller_address()
+        verify_address : felt, owner : felt):
     Ownable_initializer(owner)
     assert_not_zero(verify_address)
     verify_contract_address.write(verify_address)
@@ -130,8 +129,13 @@ end
 
 # ## Getters
 @view
-func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        index : felt) -> (array_len : felt, array : felt*):
+func get_owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (res : felt):
+    let (owner : felt) = Ownable_get_owner()
+    return (owner)
+end
+
+@view
+func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = penalty_levels_length.read()
     let (mapping_ref : felt) = get_label_location(penalty_levels.read)
@@ -142,8 +146,7 @@ func get_penalty_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
 end
 
 @view
-func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        index : felt) -> (array_len : felt, array : felt*):
+func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = acc_levels_length.read()
     let (mapping_ref : felt) = get_label_location(acc_levels.read)
@@ -154,7 +157,7 @@ func get_acc_levels{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
 end
 
 @view
-func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
+func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
         array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = cost_schedule_length.read()
@@ -166,8 +169,7 @@ func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 end
 
 @view
-func get_ratings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        index : felt) -> (array_len : felt, array : felt*):
+func get_ratings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (array_len : felt, array : felt*):
     alloc_locals
     let (length : felt) = rating_average_breaks_length.read()
     let (mapping_ref : felt) = get_label_location(rating_average_breaks.read)
@@ -378,7 +380,7 @@ func _check_valid_costs{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_
         return (1)
     end
     return _check_valid_costs(
-        costs_len, costs, rating_breaks, costs[costs_len], rating_breaks[costs_len])
+        costs_len-1, costs, rating_breaks, costs[costs_len], rating_breaks[costs_len])
 end
 
 @external
@@ -547,22 +549,28 @@ func _get_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_pt
     if array_len == 0:
         return ()
     end
-
-    let (invoke_args : felt*) = alloc()
-    assert invoke_args[0] = array_len  # invoke expect a pointer as arg
-    let val : felt = invoke(mapping_ref, 1, invoke_args)
-    assert array[array_len] = val
+    
+    tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, array_len), felt*)
+    invoke(mapping_ref, 4, args)
+    let syscall_ptr = cast([ap - 4], felt*)
+    let pedersen_ptr = cast([ap - 3], HashBuiltin*)
+    let range_check_ptr = [ap - 2]
+    assert array[array_len] = [ap - 1]
 
     return _get_array(array_len - 1, array, mapping_ref)
 end
 
 func _write_to_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         array_len : felt, array : felt*, mapping_ref : felt) -> ():
-    let (invoke_args : felt*) = alloc()
-    assert invoke_args[0] = array_len
-    assert invoke_args[1] = array[array_len]
-    invoke(mapping_ref, 2, invoke_args)
+    tempvar index = array_len - 1
+    tempvar value_to_write = [array + index]
 
+
+    tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, index, value_to_write), felt*)
+    invoke(mapping_ref, 5, args)
+    let syscall_ptr = cast([ap - 3], felt*)
+    let pedersen_ptr = cast([ap - 2], HashBuiltin*)
+    let range_check_ptr = [ap - 1]
     if array_len == 0:
         return ()
     end
