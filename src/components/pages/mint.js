@@ -5,7 +5,8 @@ import React, { useState, useContext, useEffect } from "react";
 import Footer from '../components/Footer';
 import { useWeb3React } from "@web3-react/core";
 import { AccountContext } from '../../state/contexts/AccountContext';
-import { useInsuranceNftContract } from '../../state/hooks/useInsuranceNftContract';
+import { useInsuranceNftContract } from '../../state/hooks/useInsuranceNftContractInvoke';
+import { useNftContract } from '../../state/hooks/useNftContract';
 import axios from 'axios';
 import Table from 'react-bootstrap/Table';
 import { formatEther } from '@ethersproject/units';
@@ -35,7 +36,7 @@ const Mint = function () {
   const [penaltyLevels, setPenaltyLevels] = useState([]);
   const [accLevels, setAccLevels] = useState([]);
   const [costLevels, setCostLevels] = useState([]);
-  const [NFTContract, setNFTContract] = useState();
+  // const [NFTContract, setNFTContract] = useState();
   const [VerifyContract, setVerifyContract] = useState();
   const [DAOContract, setDAOContract] = useState();
   const [deviceIMEI, setDeviceIMEI] = useState();
@@ -56,163 +57,166 @@ const Mint = function () {
   const [daoLevel, setDAOLevel] = useState(0);
   const [pendingMint, setPendingMint] = useState(false);
 
+  const [currentTokenId, setCurrentTokenId] = useState('');
+
   const { globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId } = useContext(AccountContext);
   const myAddress = '0x03ceac5dd4b48f61d6680d3d16adf504ba3dadff55f4eb2389cadbde9731464d';
   const insuranceNftAddress = '0x022a3539a4e8f029819b74d24d0f88a75750b948359bb50123f195518749167d';
   const { account } = useStarknet()
+  const { contract: NFTContract } = useNftContract()
 
-  const { invokeInsuranceNftMint } = useInsuranceNftContract();
+  const { invokeInsuranceNftMint, invokeSetTokenUri } = useInsuranceNftContract(account, NFTContract);
 
-  // const { contract: nftContract } = useInsuranceNftContract();
-  // const { data, loading, error, reset, invoke: mintTokens } = useStarknetInvoke({ contract: nftContract, method: 'mint' })
+  const { data: name, error: nameError } = useStarknetCall({ NFTContract, method: 'name', args: ['1'] })
+  const { data: symbol, error: symbolError } = useStarknetCall({ NFTContract, method: 'symbol', args: [] })
+  const { data: balanceOf, error: balanceOfError } = useStarknetCall({ NFTContract, method: 'balanceOf', args: [account] })
+  const { data: ownerOf, error: ownerOfError } = useStarknetCall({ NFTContract, method: 'ownerOf', args: [currentTokenId] })
+  const { data: getApproved, error: getApprovedError } = useStarknetCall({ NFTContract, method: 'getApproved', args: [currentTokenId] })
 
-  // const invokeInsurance = () => {
-  //   console.log(error, 'error')
-  //   mintTokens({ args: [{ 'low': 0, 'high': 123 }, { 'low': 0, 'high': 123 }, '1', '1', '1', '1'] })
-  // }
+  const { data: isApprovedForAll, error: isApprovedForAllError } = useStarknetCall({ NFTContract, method: 'isApprovedForAll', args: [currentTokenId] })
+  const { data: tokenURI, error: tokenURIError } = useStarknetCall({ NFTContract, method: 'tokenURI', args: [currentTokenId] })
+  const { data: currentId, error: currentIdError } = useStarknetCall({ NFTContract, method: 'currentId', args: [] })
+  const { data: getLastTimestamp, error: getLastTimestampError } = useStarknetCall({ NFTContract, method: 'getLastTimestamp', args: [] })
 
-  // useEffect(() => {
-  //   const loadUserNFTData = async () => {
-  //     if (globalAccount) {
-  //       const response = await fetch(`/user-nfts/${globalAccount}`);
-  //       const body = await response.json();
-  //       const initResponse = await fetch(`/init-device-check/${globalAccount}`);
-  //       const initBody = await initResponse.json();
-  //       const yearAgo = Math.round(Date.now() / 1000) - 12 * 30 * 24 * 3600;
-  //       if (body.start !== 0 && body.start > yearAgo) {
-  //         setStart(body.start);
-  //         setDateTime(dateTimeUnixConverter(Number(body.start) + 60, true));
-  //       }
-  //       else {
-  //         setStart(0);
-  //         setDateTime(dateTimeUnixConverter(Math.round(Date.now() / 1000), true));
-  //       }
-  //       if (initBody.IMEI == "") {
-  //         setDeviceIMEI("");
-  //       }
-  //       else {
-  //         setDeviceIMEI(initBody.IMEI);
-  //       }
-  //     }
-  //     else {
-  //       setStart(0);
-  //       setDateTime(dateTimeUnixConverter(Math.round(Date.now() / 1000), true));
-  //       setDeviceIMEI("");
-  //     }
-  //     setGlobalAccount(globalAccount);
-  //     // setGlobalChainId(chainId);
-  //     setFiles([]);
-  //     setFileURL("");
-  //     setScore(0);
-  //     setRating("");
-  //     setAverage("");
-  //     setPendingTokenURI("");
-  //     setPendingTimeStamp(0);
-  //     setR("");
-  //     setS("");
-  //     setV(0);
-  //     setPendingMint(false);
-  //   }
+  useEffect(() => {
+    const loadUserNFTData = async () => {
+      if (account && false) { //false to short circuit
+        const response = await fetch(`/user-nfts/${account}`);
+        const body = await response.json();
+        const initResponse = await fetch(`/init-device-check/${account}`);
+        const initBody = await initResponse.json();
+        const yearAgo = Math.round(Date.now() / 1000) - 12 * 30 * 24 * 3600;
+        if (body.start !== 0 && body.start > yearAgo) {
+          setStart(body.start);
+          setDateTime(dateTimeUnixConverter(Number(body.start) + 60, true));
+        }
+        else {
+          setStart(0);
+          setDateTime(dateTimeUnixConverter(Math.round(Date.now() / 1000), true));
+        }
+        if (initBody.IMEI == "") {
+          setDeviceIMEI("");
+        }
+        else {
+          setDeviceIMEI(initBody.IMEI);
+        }
+      } else {
+        setStart(0);
+        setDateTime(dateTimeUnixConverter(Math.round(Date.now() / 1000), true));
+        setDeviceIMEI("");
+      }
 
-  //   loadUserNFTData()
-  //     .catch(console.error);
+      setFiles([]);
+      setFileURL("");
+      setScore(0);
+      setRating("");
+      setAverage("");
+      setPendingTokenURI("");
+      setPendingTimeStamp(0);
+      setR("");
+      setS("");
+      setV(0);
+      setPendingMint(false);
+    }
 
-  // }, [globalAccount])
+    loadUserNFTData()
+      .catch(console.error);
 
-  // useEffect(() => {
-  // const loadBlockchainData = async () => {
-  //     const web3 = window.web3;
-  //     const InsuranceNFTData = InsuranceNFT.networks[chainId];
-  //     const VerifyData = Verify.networks[chainId];
-  //     const InsuranceDAOData = InsuranceDAO.networks[chainId];
-  //     if (InsuranceNFTData) {
-  //       const NFTContract = new web3.eth.Contract(InsuranceNFT.abi, InsuranceNFTData.address);
-  //       const VerifyContract = new web3.eth.Contract(Verify.abi, VerifyData.address);
-  //       const DAOContract = new web3.eth.Contract(InsuranceDAO.abi, InsuranceDAOData.address);
-  //       setNFTContract(NFTContract);
-  //       setVerifyContract(VerifyContract);
-  //       setDAOContract(DAOContract);
-  //       const penaltyLevels = await DAOContract.methods.getPenaltyLevels().call();
-  //       const accLevels = await DAOContract.methods.getAccLevels().call();
-  //       const costLevels = await DAOContract.methods.getCosts().call();
-  //       const ratingBreaks = await DAOContract.methods.getRatings().call();
-  //       let ratingLabels = Array(ratingBreaks.length);
-  //       const currentDAORound = await DAOContract.methods.getCurrentRound().call();
-  //       for (let i = 0; i < ratingLabels.length; i++) {
-  //         const ratingLabel = await DAOContract.methods.ratingLabels(i + 1).call();
-  //         ratingLabels[i] = ratingLabel;
-  //       }
-  //       const ownedNFTs = await NFTContract.methods.getTokensByAddr(account).call();
-  //       let lastTokenURI, lastMetaData, lastMetaDataBody;
-  //       if (ownedNFTs.length > 0) {
-  //         lastTokenURI = await NFTContract.methods.tokenURI(ownedNFTs[ownedNFTs.length - 1]).call();
-  //         lastMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${lastTokenURI.slice(7)}`);
-  //         lastMetaDataBody = await lastMetaData.json();
-  //         //get last tokenURI info like level and rating and score et al
-  //       }
-  //       const currentDAOToken = await DAOContract.methods.currentTokenIdForAddr(currentDAORound, account).call();
-  //       const isInDAO = (currentDAOToken > 0);
-  //       const lastNFTTime = await NFTContract.methods.lastTimeStampNFTUsed(account).call();
-  //       const yearAgo = Math.round(Date.now() / 1000) - 12 * 30 * 24 * 3600;
-  //       const roundPayouts = await DAOContract.methods.roundPayouts(currentDAORound, account).call();
-  //       const levelEntered = await DAOContract.methods.levelsEntered(currentDAORound, account).call();
-  //       if (!isInDAO && lastNFTTime > yearAgo) {
+  }, [account])
 
-  //         setDAOJoin(true);
-  //         setDAOUpdate(false);
-  //         setDAOShow(true);
-  //         setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
-  //         setDAORating(lastMetaDataBody.attributes.rating);
-  //       }
+  useEffect(() => {
+    const loadBlockchainData = async () => {
+      // const web3 = window.web3;
+      // const InsuranceNFTData = InsuranceNFT.networks[chainId];
+      // const VerifyData = Verify.networks[chainId];
+      // const InsuranceDAOData = InsuranceDAO.networks[chainId];
+      if (InsuranceNftAbi) {
+        // const NFTContract = new web3.eth.Contract(InsuranceNFT.abi, InsuranceNFTData.address);
+        // const VerifyContract = new web3.eth.Contract(Verify.abi, VerifyData.address);
+        // const DAOContract = new web3.eth.Contract(InsuranceDAO.abi, InsuranceDAOData.address);
+        //       setNFTContract(NFTContract);
+        //       setVerifyContract(VerifyContract);
+        //       setDAOContract(DAOContract);
+        //       const penaltyLevels = await DAOContract.methods.getPenaltyLevels().call();
+        //       const accLevels = await DAOContract.methods.getAccLevels().call();
+        //       const costLevels = await DAOContract.methods.getCosts().call();
+        //       const ratingBreaks = await DAOContract.methods.getRatings().call();
+        //       let ratingLabels = Array(ratingBreaks.length);
+        //       const currentDAORound = await DAOContract.methods.getCurrentRound().call();
+        //       for (let i = 0; i < ratingLabels.length; i++) {
+        //         const ratingLabel = await DAOContract.methods.ratingLabels(i + 1).call();
+        //         ratingLabels[i] = ratingLabel;
+        // }
+        //       const ownedNFTs = await NFTContract.methods.getTokensByAddr(account).call();
+        //       let lastTokenURI, lastMetaData, lastMetaDataBody;
+        //       if (ownedNFTs.length > 0) {
+        //         lastTokenURI = await NFTContract.methods.tokenURI(ownedNFTs[ownedNFTs.length - 1]).call();
+        //         lastMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${lastTokenURI.slice(7)}`);
+        //         lastMetaDataBody = await lastMetaData.json();
+        //         //get last tokenURI info like level and rating and score et al
+        //       }
+        //       const currentDAOToken = await DAOContract.methods.currentTokenIdForAddr(currentDAORound, account).call();
+        //       const isInDAO = (currentDAOToken > 0);
+        //       const lastNFTTime = await NFTContract.methods.lastTimeStampNFTUsed(account).call();
+        //       const yearAgo = Math.round(Date.now() / 1000) - 12 * 30 * 24 * 3600;
+        //       const roundPayouts = await DAOContract.methods.roundPayouts(currentDAORound, account).call();
+        //       const levelEntered = await DAOContract.methods.levelsEntered(currentDAORound, account).call();
+        //       if (!isInDAO && lastNFTTime > yearAgo) {
 
-  //       else if (isInDAO && ownedNFTs[-1] != currentDAOToken && roundPayouts == 0 && levelEntered > Number(lastMetaDataBody.attributes.level.split(" ")[0])) {
-  //         setDAOJoin(false);
-  //         setDAOUpdate(true);
-  //         setDAOShow(true);
-  //         setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
-  //         setDAORating(lastMetaDataBody.attributes.rating);
-  //         //get level from token URI and then update
-  //       }
-  //       else {
-  //         setDAOJoin(false);
-  //         setDAOUpdate(false);
-  //         setDAOShow(false);
-  //         setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
-  //         setDAORating(lastMetaDataBody.attributes.rating);
-  //       }
-  //       setPenaltyLevels(penaltyLevels);
-  //       setAccLevels(accLevels);
-  //       setCostLevels(costLevels);
-  //       setRatingBreaks(ratingBreaks);
-  //       setRatingLabels(ratingLabels);
-  //     }
-  //     else {
-  //       setNFTContract(null);
-  //       setVerifyContract(null);
-  //       setDAOContract(null);
-  //       setDeviceIMEI("");
-  //       setScore(0);
-  //       setRating("");
-  //       setAverage("");
-  //       setPendingTokenURI("");
-  //       setPendingTimeStamp(0);
-  //       setR("");
-  //       setS("");
-  //       setV(0);
-  //       setPendingMint(false);
-  //       setDAOJoin(false);
-  //       setDAOUpdate(false);
-  //       setDAOShow(false);
-  //       setDAOLevel(0);
-  //       setDAORating("");
-  //       window.alert('contract not deployed to detected network.');
-  // }
-  // }
+        //         setDAOJoin(true);
+        //         setDAOUpdate(false);
+        //         setDAOShow(true);
+        //         setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
+        //         setDAORating(lastMetaDataBody.attributes.rating);
+        //       }
 
-  // loadBlockchainData()
-  //   .catch(console.error);
+        //       else if (isInDAO && ownedNFTs[-1] != currentDAOToken && roundPayouts == 0 && levelEntered > Number(lastMetaDataBody.attributes.level.split(" ")[0])) {
+        //         setDAOJoin(false);
+        //         setDAOUpdate(true);
+        //         setDAOShow(true);
+        //         setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
+        //         setDAORating(lastMetaDataBody.attributes.rating);
+        //         //get level from token URI and then update
+        //       }
+        //       else {
+        //         setDAOJoin(false);
+        //         setDAOUpdate(false);
+        //         setDAOShow(false);
+        //         setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
+        //         setDAORating(lastMetaDataBody.attributes.rating);
+        //       }
+        //       setPenaltyLevels(penaltyLevels);
+        //       setAccLevels(accLevels);
+        //       setCostLevels(costLevels);
+        //       setRatingBreaks(ratingBreaks);
+        //       setRatingLabels(ratingLabels);
+      } else {
+        //       setNFTContract(null);
+        //       setVerifyContract(null);
+        //       setDAOContract(null);
+        //       setDeviceIMEI("");
+        //       setScore(0);
+        //       setRating("");
+        //       setAverage("");
+        //       setPendingTokenURI("");
+        //       setPendingTimeStamp(0);
+        //       setR("");
+        //       setS("");
+        //       setV(0);
+        //       setPendingMint(false);
+        //       setDAOJoin(false);
+        //       setDAOUpdate(false);
+        //       setDAOShow(false);
+        //       setDAOLevel(0);
+        //       setDAORating("");
+        //       window.alert('contract not deployed to detected network.');
+      }
+    }
 
-  // }, [account, globalActive, globalAccount, globalChainId])
+    loadBlockchainData()
+      .catch(console.error);
+
+  }, [account])
 
 
   function fileLoad(e) {
@@ -323,7 +327,6 @@ const Mint = function () {
 
   //after all the calculations for score and rating and getting a token URI, proceed to mint NFT if user desires
   const finishMint = async () => {
-    mintTokens({ args: [{ 'low': 0, 'high': 123 }, { 'low': 0, 'high': 123 }, '1', '1', '1', '1'] })
     await NFTContract.methods.mintTokens(pendingTokenURI, pendingTimeStamp, r, s, v).send({ from: account })
       .on('receipt', async function (receipt) {
         window.alert('minted');
@@ -448,8 +451,20 @@ const Mint = function () {
                 {pendingMint && <h5>Score: {score} and rating : {rating}</h5>}
 
                 <div className="spacer-10"></div>
-
-                {deviceIMEI !== "" || account ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={() => invokeInsurance()} /> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={() => invokeInsurance()} /></span>}
+                <div>
+                  <div>Contract Call</div>
+                  {name ? (
+                    <div>
+                      <p>Name Value: {name}</p>
+                    </div>
+                  ) : nameError ? (
+                    <p>'Error loading name'</p>
+                  ) : (
+                    <p>'Loading'</p>
+                  )}
+                </div>
+                {name && <h1 style={{ color: "white" }}>{name} HELLO</h1>}
+                {deviceIMEI !== "" || account ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={() => invokeInsuranceNftMint()} /> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={() => invokeInsuranceNftMint()} /></span>}
 
                 {daoShow && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Join/Update Dao" onClick={() => joinUpdateDao()} /> &ensp; Rating: {daoRating} &ensp; Level: {daoLevel}</span>}
               </div>
