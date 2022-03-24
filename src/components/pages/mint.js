@@ -60,13 +60,16 @@ const Mint = function () {
   const myAddress = '0x03ceac5dd4b48f61d6680d3d16adf504ba3dadff55f4eb2389cadbde9731464d';
   const insuranceNftAddress = '0x022a3539a4e8f029819b74d24d0f88a75750b948359bb50123f195518749167d';
   const { account } = useStarknet()
-  const { contract: nftContract } = useInsuranceNftContract();
-  const { data, loading, error, reset, invoke: mintTokens } = useStarknetInvoke({ contract: nftContract, method: 'mint' })
 
-  const invokeInsurance = () => {
-    console.log(error, 'error')
-    mintTokens({ args: [{ 'low': 0, 'high': 123 }, { 'low': 0, 'high': 123 }, '1', '1', '1', '1'] })
-  }
+  const { invokeInsuranceNftMint } = useInsuranceNftContract();
+
+  // const { contract: nftContract } = useInsuranceNftContract();
+  // const { data, loading, error, reset, invoke: mintTokens } = useStarknetInvoke({ contract: nftContract, method: 'mint' })
+
+  // const invokeInsurance = () => {
+  //   console.log(error, 'error')
+  //   mintTokens({ args: [{ 'low': 0, 'high': 123 }, { 'low': 0, 'high': 123 }, '1', '1', '1', '1'] })
+  // }
 
   // useEffect(() => {
   //   const loadUserNFTData = async () => {
