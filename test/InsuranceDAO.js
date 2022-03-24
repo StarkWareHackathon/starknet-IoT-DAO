@@ -30,12 +30,14 @@ describe("InsuranceDAO", async () => {
         await deployInsuranceDAO();
     });
 
-    it("should add penalienies", async () => {
+    it("should add penalties", async () => {
+        const penalties = [5, 8];
         await owner.invoke(insuranceDAOContract, "set_penalties", {
             levels: [5, 7],
-            penalties: [5, 8]
+            penalties
         });
-
-        console.log(`Penalities set successfully`);
+        const { array } = await insuranceDAOContract.call('get_penalty_levels');
+        expect(penalties).to.eql(array.map(x => Number(x)));
+        console.log(`Penalties set successfully`);
     });
 });
