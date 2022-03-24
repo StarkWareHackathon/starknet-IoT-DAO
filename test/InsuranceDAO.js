@@ -30,7 +30,7 @@ describe("InsuranceDAO", async () => {
         await deployInsuranceDAO();
     });
 
-    it.skip("should add penalties", async () => {
+    it("should add penalties", async () => {
         const penalties = [5, 8];
         await owner.invoke(insuranceDAOContract, "set_penalties", {
             levels: [5, 7],
