@@ -5,6 +5,7 @@ from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.invoke import invoke
 from starkware.cairo.common.registers import get_label_location
 from starkware.cairo.common.math import assert_not_zero, assert_nn_le, assert_lt, assert_le
+from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.uint256 import (
     Uint256, uint256_le, uint256_lt, uint256_add, uint256_sub, uint256_eq, uint256_unsigned_div_rem, uint256_mul)
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
@@ -158,13 +159,15 @@ end
 
 @view
 func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-        array_len : felt, array : felt*):
+
+        array_len : felt, array : Uint256*):
+
     alloc_locals
     let (length : felt) = cost_schedule_length.read()
     let (mapping_ref : felt) = get_label_location(cost_schedule.read)
-    let (array : felt*) = alloc()
+    let (array : Uint256*) = alloc()
 
-    _get_array(length, array, mapping_ref)
+    _get_array_uint256(length, array, mapping_ref)
     return (length, array)
 end
 
@@ -353,7 +356,7 @@ func set_cost_schedule{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_c
     end
 
     let (cost_schedule_write_ptr : felt) = get_label_location(cost_schedule.write)
-    _write_to_array(costs_len, costs, cost_schedule_write_ptr)
+    _write_to_array_uint256(costs_len, costs, cost_schedule_write_ptr)
     cost_schedule_length.write(costs_len)
 
     let (rating_average_breaks_ptr : felt) = get_label_location(rating_average_breaks.write)
@@ -366,21 +369,22 @@ end
 func _check_valid_costs{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
         costs_len : felt, costs : Uint256*, rating_breaks : felt*, max_cost : Uint256,
         max_rating : felt) -> (valid : felt):
-    let is_less_than_max_cost : felt = uint256_lt(costs[costs_len], max_cost)
+    let index = costs_len - 1
+    let is_less_than_max_cost : felt = uint256_lt(costs[index], max_cost)
     if is_less_than_max_cost == TRUE:
         return (0)
     end
 
-    let is_rating_le_than_max : felt = assert_le(rating_breaks[costs_len], max_rating)
+    let is_rating_le_than_max : felt = is_le(rating_breaks[index], max_rating)
     if is_rating_le_than_max == TRUE:
         return (0)
     end
 
-    if costs_len == 0:
+    if index == 0:
         return (1)
     end
     return _check_valid_costs(
-        costs_len-1, costs, rating_breaks, costs[costs_len], rating_breaks[costs_len])
+        costs_len-1, costs, rating_breaks, costs[index], rating_breaks[index])
 end
 
 @external
@@ -537,7 +541,7 @@ func _make_payout{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_
 end
 
 # ## Internal function
-func increment_round{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> ():
+func increment_round{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr : felt}() -> ():
     let (current_value : felt) = round.read()
     assert_nn_le(current_value, current_value + 1)  # overflow check
     round.write(current_value + 1)
@@ -546,36 +550,71 @@ end
 
 func _get_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         array_len : felt, array : felt*, mapping_ref : felt) -> ():
-    if array_len == 0:
-        return ()
-    end
-    
-    tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, array_len), felt*)
+
+    let index = array_len - 1
+    tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, index), felt*)
     invoke(mapping_ref, 4, args)
     let syscall_ptr = cast([ap - 4], felt*)
     let pedersen_ptr = cast([ap - 3], HashBuiltin*)
     let range_check_ptr = [ap - 2]
-    assert array[array_len] = [ap - 1]
+    assert array[index] = [ap - 1]
+
+    if index == 0:
+        return ()
+    end
 
     return _get_array(array_len - 1, array, mapping_ref)
 end
 
 func _write_to_array{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         array_len : felt, array : felt*, mapping_ref : felt) -> ():
-    tempvar index = array_len - 1
+    let index = array_len - 1
     tempvar value_to_write = [array + index]
-
-
     tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, index, value_to_write), felt*)
     invoke(mapping_ref, 5, args)
     let syscall_ptr = cast([ap - 3], felt*)
     let pedersen_ptr = cast([ap - 2], HashBuiltin*)
     let range_check_ptr = [ap - 1]
-    if array_len == 0:
+    if index == 0:
         return ()
     end
 
     return _write_to_array(array_len - 1, array, mapping_ref)
+end
+
+func _write_to_array_uint256{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        array_len : felt, array : Uint256*, mapping_ref : felt) -> ():
+    let index = array_len - 1
+    let value_to_write : Uint256 = [array + index]
+    tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, index, value_to_write.low, value_to_write.high), felt*)
+    invoke(mapping_ref, 6, args)
+    let syscall_ptr = cast([ap - 3], felt*)
+    let pedersen_ptr = cast([ap - 2], HashBuiltin*)
+    let range_check_ptr = [ap - 1]
+    if index == 0:
+        return ()
+    end
+
+    return _write_to_array(array_len - 1, array, mapping_ref)
+end
+
+func _get_array_uint256{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        array_len : felt, array : Uint256*, mapping_ref : felt) -> ():
+
+    let index = array_len - 1
+    tempvar args = cast(new (syscall_ptr, pedersen_ptr, range_check_ptr, index), felt*)
+    invoke(mapping_ref, 4, args)
+    let syscall_ptr = cast([ap - 5], felt*)
+    let pedersen_ptr = cast([ap - 4], HashBuiltin*)
+    let range_check_ptr = [ap - 3]
+    assert array[index].high = [ap - 2]
+    assert array[index].low = [ap - 1]
+
+    if index == 0:
+        return ()
+    end
+
+    return _get_array(array_len - 1, array, mapping_ref)
 end
 
 func _get_current_balance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
