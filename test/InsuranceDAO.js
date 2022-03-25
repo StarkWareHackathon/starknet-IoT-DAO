@@ -50,5 +50,6 @@ describe("InsuranceDAO", async () => {
         const { array } = await insuranceDAOContract.call('get_costs');
         expect(costs).to.eql(array.map(x => Number(x)));
         console.log(`Scheduled cost set successfully`);
+
     });
 });

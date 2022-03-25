@@ -159,7 +159,9 @@ end
 
 @view
 func get_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+
         array_len : felt, array : Uint256*):
+
     alloc_locals
     let (length : felt) = cost_schedule_length.read()
     let (mapping_ref : felt) = get_label_location(cost_schedule.read)
