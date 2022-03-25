@@ -207,6 +207,16 @@ func getLastTimestamp{syscall_ptr: felt*,
     return (last_timestamp = last_timestamp)
 end
 
+@view
+func getLastTokenId{syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }(address : felt) -> (last_token_Id : Uint256):
+    let (token_len : felt) = tokens_by_address_len.read(address)
+    let (last_token_Id : Uint256) = tokens_by_address.read(address, token_len)
+    return (last_token_Id)
+end
+
 #
 # Externals
 #
@@ -282,10 +292,13 @@ func mint{
     #let (to : felt) = get_caller_address()
     let (curr_id : Uint256) = current_token_id.read()
     let (tokenId : Uint256, carry : felt) = uint256_add( curr_id, Uint256(1,0))
+    let (numTokens : felt) = tokens_by_address_len.read(to)
     ERC721_mint(to, tokenId)
     current_token_id.write(tokenId)
     ipfs_uri_by_token.write(tokenId, ipfs_uri_hex)
     last_timestamp_nft_used.write(to, last_time_stamp)
+    tokens_by_address.write(to, numTokens + 1, tokenId)
+    tokens_by_address_len.write(to, numTokens + 1)
     return ()
 end
 

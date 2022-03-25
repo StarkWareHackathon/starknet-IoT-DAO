@@ -1,9 +1,9 @@
 //@ts-check
 
-import fs from "fs";
+const fs = require("fs");
 
 // Install the latest version of starknet with npm install starknet@next and import starknet
-import {
+const {
   Contract,
   defaultProvider,
   ec,
@@ -12,7 +12,7 @@ import {
   json,
   number,
   stark,
-} from "starknet";
+} = require("starknet");
 
 const args = process.argv
 const accountAddr = args[2]
@@ -29,7 +29,7 @@ const compiledNFT = json.parse(
   fs.readFileSync("./artifacts/InsuranceNFT.json").toString("ascii")
 );
 
-
+const main = async () =>{
 // Deploy an ERC20 contract and wait for it to be verified on StarkNet.
 console.log("Deployment Tx - DAO Contract to StarkNet...");
 const daoResponse = await defaultProvider.deployContract({
@@ -59,7 +59,7 @@ await defaultProvider.waitForTransaction(nftResponse.transaction_hash);
 const nftAddress = nftResponse.address;
 console.log(`nft address: ${nftAddress}`)
 
-
+}
 //const daoInstance = new Contract(compiledDAO.abi, daoAddress);
 
 // Set label
@@ -138,3 +138,6 @@ console.log(
   `accountContract Address ${accountContract.address} has a balance of:`,
   number.toBN(balanceAfterTransfer.res, 16).toString()
 );*/
+
+
+main()
