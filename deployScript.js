@@ -21,7 +21,7 @@ const accountAddr = args[2]
 
 console.log("Reading DAO Contract...");
 const compiledDAO = json.parse(
-  fs.readFileSync("./artifacts/InsuranceDAO.json").toString("ascii")
+  fs.readFileSync("./artifacts/InsuranceDAOMintComp.json").toString("ascii")
 );
 
 console.log("Reading NFT Contract...");
