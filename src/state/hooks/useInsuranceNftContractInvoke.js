@@ -6,7 +6,7 @@ export function useInsuranceNftContract(account, contract) {
   const { data: setTokenURIData, loading: setTokenURILoading, error: setTokenURIError, reset: setTokenURIReset, invoke: invokeSetTokenURI } = useStarknetInvoke({ contract: contract, method: 'setTokenURI' })
 
   const invokeInsuranceNftMint = () => {
-    mintTokens({ args: [{ 'low': 0, 'high': 123 }, { 'low': 0, 'high': 123 }, '1', '1', '1', '1'] })
+    mintTokens({ args: [{ 'low': 0, 'high': 123 }, { 'low': 0, 'high': 123 }, account, '1', '1', '1'] })
   }
 
   const invokeSetTokenUri = (uri) => {
