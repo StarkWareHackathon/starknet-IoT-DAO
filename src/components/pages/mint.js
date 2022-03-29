@@ -1,7 +1,7 @@
 import InsuranceNFT from '../../abis/InsuranceNFT.json';
 import Verify from '../../abis/Verify.json';
 import InsuranceDAO from '../../abis/InsuranceDAO.json';
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useMemo } from "react";
 import Footer from '../components/Footer';
 import { useWeb3React } from "@web3-react/core";
 import { AccountContext } from '../../state/contexts/AccountContext';
@@ -24,6 +24,10 @@ import {
   InjectedConnector,
 } from '@starknet-react/core'
 
+import {toBN} from 'starknet/dist/utils/number'
+
+import { bnToUint256, uint256ToBN } from 'starknet/dist/utils/uint256'
+
 const Web3 = require('web3');
 
 const Mint = function () {
@@ -36,7 +40,6 @@ const Mint = function () {
   const [penaltyLevels, setPenaltyLevels] = useState([]);
   const [accLevels, setAccLevels] = useState([]);
   const [costLevels, setCostLevels] = useState([]);
-  // const [NFTContract, setNFTContract] = useState();
   const [VerifyContract, setVerifyContract] = useState();
   const [DAOContract, setDAOContract] = useState();
   const [deviceIMEI, setDeviceIMEI] = useState();
@@ -62,12 +65,12 @@ const Mint = function () {
   const { globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId } = useContext(AccountContext);
   const myAddress = '0x03ceac5dd4b48f61d6680d3d16adf504ba3dadff55f4eb2389cadbde9731464d';
   const insuranceNftAddress = '0x022a3539a4e8f029819b74d24d0f88a75750b948359bb50123f195518749167d';
-  const { account } = useStarknet()
+  const { account, library } = useStarknet()
   const { contract: NFTContract } = useNftContract()
 
   const { invokeInsuranceNftMint, invokeSetTokenUri } = useInsuranceNftContract(account, NFTContract);
 
-  const { data: name, error: nameError } = useStarknetCall({ NFTContract, method: 'name', args: ['1'] })
+  const { data: name, error: nameError, loading : nameLoad} = useStarknetCall({ NFTContract, method : 'name', args : [] })
   const { data: symbol, error: symbolError } = useStarknetCall({ NFTContract, method: 'symbol', args: [] })
   const { data: balanceOf, error: balanceOfError } = useStarknetCall({ NFTContract, method: 'balanceOf', args: [account] })
   const { data: ownerOf, error: ownerOfError } = useStarknetCall({ NFTContract, method: 'ownerOf', args: [currentTokenId] })
@@ -80,7 +83,7 @@ const Mint = function () {
 
   useEffect(() => {
     const loadUserNFTData = async () => {
-      if (account && false) { //false to short circuit
+      if (account) {
         const response = await fetch(`/user-nfts/${account}`);
         const body = await response.json();
         const initResponse = await fetch(`/init-device-check/${account}`);
@@ -126,10 +129,6 @@ const Mint = function () {
 
   useEffect(() => {
     const loadBlockchainData = async () => {
-      // const web3 = window.web3;
-      // const InsuranceNFTData = InsuranceNFT.networks[chainId];
-      // const VerifyData = Verify.networks[chainId];
-      // const InsuranceDAOData = InsuranceDAO.networks[chainId];
       if (InsuranceNftAbi) {
         // const NFTContract = new web3.eth.Contract(InsuranceNFT.abi, InsuranceNFTData.address);
         // const VerifyContract = new web3.eth.Contract(Verify.abi, VerifyData.address);
@@ -216,7 +215,7 @@ const Mint = function () {
     loadBlockchainData()
       .catch(console.error);
 
-  }, [account])
+  }, [account, library])
 
 
   function fileLoad(e) {
@@ -229,8 +228,8 @@ const Mint = function () {
   }
 
   const imageMap = {
-    "0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631": "author-1", "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca": "author-2",
-    "0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91": "author-3", "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c": "author-4"
+    "0x7f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "author-1", "0x6fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "author-2",
+    "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "author-3", "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "author-4"
   }
 
   const ratingMap = { "1": "Pristine", "2": "Great", "3": "Good", "4": "Fair", "5": "Poor" }
@@ -293,6 +292,7 @@ const Mint = function () {
     const formData = new FormData();
     formData.append('avatar', file);
 
+    window.alert('made it here before post')
     //use axios to post image with multer and upload to pinata
     const mintImageRes = await axios.post(`/mint-upload/${account}`, formData, {
       headers: {
@@ -404,7 +404,7 @@ const Mint = function () {
 
   return (
     <div>
-
+      
       <section className='jumbotron breadcrumb no-bg'>
         <div className='mainbreadcrumb'>
           <div className='container'>
@@ -416,7 +416,6 @@ const Mint = function () {
           </div>
         </div>
       </section>
-
       <section className='container' style={{ paddingBottom: "0.1em" }}>
         <div className="row">
           <div className="col-lg-7 offset-lg-1 mb-5">
@@ -453,28 +452,27 @@ const Mint = function () {
                 <div className="spacer-10"></div>
                 <div>
                   <div>Contract Call</div>
-                  {name ? (
+                  {name && (
                     <div>
                       <p>Name Value: {name}</p>
                     </div>
-                  ) : nameError ? (
-                    <p>'Error loading name'</p>
-                  ) : (
-                    <p>'Loading'</p>
                   )}
+                  {nameError &&( 
+                    <p>'Error loading name'</p>
+                  )}
+                  {nameLoad && <div>loading</div>}
                 </div>
                 {name && <h1 style={{ color: "white" }}>{name} HELLO</h1>}
-                {deviceIMEI !== "" || account ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={() => invokeInsuranceNftMint()} /> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={() => invokeInsuranceNftMint()} /></span>}
+                {deviceIMEI !== "" || account ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={() => startMint()} /> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={() => invokeInsuranceNftMint()} /></span>}
 
                 {daoShow && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Join/Update Dao" onClick={() => joinUpdateDao()} /> &ensp; Rating: {daoRating} &ensp; Level: {daoLevel}</span>}
               </div>
             </form>
           </div>
-
           <div className="col-lg-3 col-sm-6 col-xs-12">
             <h5>Preview item</h5>
             <div className="nft__item m-0">
-
+                    
               <div className="author_list_pp">
                 <span>
                   <img className="lazy" src={`./img/author/${(account in imageMap) ? imageMap[account] : "author-5"}.jpg`} alt="" />

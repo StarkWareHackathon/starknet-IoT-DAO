@@ -9,6 +9,7 @@
     "font-awesome": "^4.7.0",
     "hardhat": "2.9.1",
     "mocha": "^9.2.2",
+    "sass": "^1.49.9",
     "typescript": "^4.6.2"
   },
   "dependencies": {

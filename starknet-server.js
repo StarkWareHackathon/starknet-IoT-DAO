@@ -1,6 +1,5 @@
-const InsuranceNFT = require('./src/abis/InsuranceNFT.json');
-const Verify = require('./src/abis/Verify.json');
-const InsuranceDAO = require('./src/abis/InsuranceDAO.json');
+const { defaultProvider, stark } = require('starknet');
+const { getSelectorFromName } = stark;
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
@@ -19,26 +18,16 @@ const projectID = process.env.PROJECT_ID;
 const testNet = process.env.TEST_NET;
 const signingKey = process.env.PRIVATE_KEY;
 const starknetPrivKey = process.env.SERVER_STARKNET_PRIVATE_KEY;
-
+const starknetNFTAddr = process.env.STARKNET_NFT;
+const starknetDAOAddr = process.env.STARKNET_DAO;
 
 const app = express(); 
 const upload = multer({dest: 'uploads/'})
 
-let web3;
 let chainId;
 let useLocalData = true;
-//swap between Kovan
-if(testNet=="KOVAN"){
-  web3 = new Web3(new Web3.providers.HttpProvider(`https://kovan.infura.io/v3/${projectID}`));
-  chainId = 42;
-  }
 
 const port = process.env.SERVER_PORT || 6000;
-
-//instances of all 3 contracts
-const NFTInstance = new web3.eth.Contract(InsuranceNFT.abi, InsuranceNFT.networks[chainId].address);
-const VerifyInstance = new web3.eth.Contract(Verify.abi, Verify.networks[chainId].address);
-const DAOInstance = new web3.eth.Contract(InsuranceDAO.abi, InsuranceDAO.networks[chainId].address);
 
 app.use(cors());
 
@@ -70,7 +59,37 @@ app.get('/init-device-check/:address', async (req, res) => {
 app.get('/user-nfts/:address', async (req, res) => {
   const address = req.params.address;
   console.log(address);
-  const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
+  const callDataString = ethers.BigNumber.from(address)
+  const lastTokenId = await defaultProvider.callContract({
+    contractAddress: starknetNFTAddr,
+    entrypoint: "getLastTokenId",
+    calldata: [callDataString.toString()],
+  });
+
+  const startResult = await defaultProvider.callContract({
+    contractAddress: starknetNFTAddr,
+    entrypoint: "getLastTimestamp",
+    calldata: [callDataString.toString()],
+  });
+
+  //let tokenURIs = [tokenIds.length];
+  let tokenURIs = Array(1)
+  const start = parseInt(startResult.result[0])
+  console.log(start)
+  if(start==0){
+    return res.send({success: false, results : [], start : 0})
+  }
+  else{
+    const lastTokenURIArr = await defaultProvider.callContract({
+      contractAddress: starknetNFTAddr,
+      entrypoint: "tokenURI",
+      calldata: [`${parseInt(lastTokenId.result[0])}`, '0'],
+    });
+    tokenURIs[0] = `ipfs://f01701220` + lastTokenURIArr.result[2].slice(2) + lastTokenURIArr.result[3].slice(2)
+    console.log(tokenURIs)
+    return res.send({success : true, results : tokenURIs, start : start});
+  }
+  /*const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
   const start = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
   let tokenURIs = [tokenIds.length];
   let tokenMetaData = [tokenIds.length]
@@ -84,30 +103,30 @@ app.get('/user-nfts/:address', async (req, res) => {
     }
     
     return res.send({success : true, results : tokenURIs, start : start});
-  }
+  }*/
 });
 
 //used to render all NFTs for all Dao holdings
-app.get('/dao-nfts/:address', async (req, res) => {
-  const address = req.params.address;
-  console.log(address);
-  const round = await DAOInstance.methods.getCurrentRound().call();
-  const members = await DAOInstance.methods.getDAOMembers(round).call();
-  console.log(round)
-  let tokenURIs = [members.length];
-  let currentTokenId;
-  if(members.length==0){
-    return res.send({success: false, results : [], members : []})
-  }
-  else{
-    for (var i =0; i<members.length; i++){
-      currentTokenId = await DAOInstance.methods.currentTokenIdForAddr(round, members[i]).call();
-      console.log(currentTokenId)
-      tokenURIs[i] =  await NFTInstance.methods.tokenURI(currentTokenId).call();
-    }
-    return res.send({success : true, results : tokenURIs, members : members});
-  }
-});
+// app.get('/dao-nfts/:address', async (req, res) => {
+//   const address = req.params.address;
+//   console.log(address);
+//   const round = await DAOInstance.methods.getCurrentRound().call();
+//   const members = await DAOInstance.methods.getDAOMembers(round).call();
+//   console.log(round)
+//   let tokenURIs = [members.length];
+//   let currentTokenId;
+//   if(members.length==0){
+//     return res.send({success: false, results : [], members : []})
+//   }
+//   else{
+//     for (var i =0; i<members.length; i++){
+//       currentTokenId = await DAOInstance.methods.currentTokenIdForAddr(round, members[i]).call();
+//       console.log(currentTokenId)
+//       tokenURIs[i] =  await NFTInstance.methods.tokenURI(currentTokenId).call();
+//     }
+//     return res.send({success : true, results : tokenURIs, members : members});
+//   }
+// });
 
 //main mint call
 app.get('/mint/:address', async (req, res) => {
@@ -115,177 +134,181 @@ app.get('/mint/:address', async (req, res) => {
   const address = req.params.address;
   const runs = req.query.runs;
   const start = req.query.start;
-  const imageURI = `ipfs://${req.query.imageuri}`;
+  const base16IPFS = new CID(req.query.imageuri).toV1().toString('base16')
+  const imageURI = `ipfs://${base16IPFS}`;
   console.log(`runs: ${runs} and start : ${start} and URI : ${imageURI}`);
+  return
 
-  // get info from NFT and DAO smart contract we will need and check start is valid
-  const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
-  const startCheck = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
-  const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
-  if((startCheck !==0  && startCheck > start && yearAgo < start) || !(runs>=100 && runs<=500)){
-    return res.send({success : false, reason : "invalid runs number or start"})
-  }
+//   // get info from NFT and DAO smart contract we will need and check start is valid
+//   const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
+//   const startCheck = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
+//   const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
+//   if((startCheck !==0  && startCheck > start && yearAgo < start) || !(runs>=100 && runs<=500)){
+//     return res.send({success : false, reason : "invalid runs number or start"})
+//   }
 
-  //get info needed for calculating score and message later
-  const accLevels = await DAOInstance.methods.getAccLevels().call();
-  const rawPenLevels = await DAOInstance.methods.getPenaltyLevels().call();
-  const costs = await DAOInstance.methods.getCosts().call();
-  const nonce = await VerifyInstance.methods.nonces(address).call();
-  let penLevels = Array(rawPenLevels.length);
-  for(var i=0 ; i<penLevels.length; i++){
-    if(i==0){
-      penLevels[i] = Number(rawPenLevels[i]);
-    }
-    else{
-      penLevels[i] = Number(penLevels[i-1]) + Number(rawPenLevels[i]);
-    }
-  }
+//   //get info needed for calculating score and message later
+//   const accLevels = await DAOInstance.methods.getAccLevels().call();
+//   const rawPenLevels = await DAOInstance.methods.getPenaltyLevels().call();
+//   const costs = await DAOInstance.methods.getCosts().call();
+//   const nonce = await VerifyInstance.methods.nonces(address).call();
+//   let penLevels = Array(rawPenLevels.length);
+//   for(var i=0 ; i<penLevels.length; i++){
+//     if(i==0){
+//       penLevels[i] = Number(rawPenLevels[i]);
+//     }
+//     else{
+//       penLevels[i] = Number(penLevels[i-1]) + Number(rawPenLevels[i]);
+//     }
+//   }
 
-  let recordsData, timestamp;
-  let score = 0;
-  let index =0;
-  let deviceExist = address in addressIMEI;
-  if (!deviceExist){
-    return res.send({success : false, reason : "not enough records for this"})
-  }
-  else{
-    const deviceIMEI = addressIMEI[address];
-    fs.readFile('./backupDataStarknet.json', 'utf8', async (err, data) => {
+//   let recordsData, timestamp;
+//   let score = 0;
+//   let index =0;
+//   let deviceExist = address in addressIMEI;
+//   if (!deviceExist){
+//     return res.send({success : false, reason : "not enough records for this"})
+//   }
+//   else{
+//     const deviceIMEI = addressIMEI[address];
+//     fs.readFile('./backupDataStarknet.json', 'utf8', async (err, data) => {
 
-      if (err) {
-          console.log(`Error reading file from disk: ${err}`);
-          return res.send({success : false, reason : "error reading json data"})
-      } else {
+//       if (err) {
+//           console.log(`Error reading file from disk: ${err}`);
+//           return res.send({success : false, reason : "error reading json data"})
+//       } else {
   
-          // parse JSON string to JSON object
-          const dataObj = JSON.parse(data);
+//           // parse JSON string to JSON object
+//           const dataObj = JSON.parse(data);
   
-          const timestamps = dataObj['timestamps'];
-          while(index < 1000 && timestamps[index]< start){
-              index++;
-          }
-          console.log(`index is ${index} and runs is ${runs}`);
-          if(index + Number(runs) >= 1000){
-            console.log('in here')
-          return res.send({success : false, reason : "not enough records for this"})
-          }
-          else {
-            timestamp = timestamps[index + Number(runs)-1];
-            recordsData = dataObj[deviceIMEI].slice(index, index+runs);
-          }
-          recordsData.map((record, index) =>{
-            let k = accLevels.length -1;
-            let flag = false;
-            while(!flag && k >0){
-              if(record >= accLevels[k]){
-                flag = true;
-                score += penLevels[k]
-              }
-              k--;
-            }
-          })
+//           const timestamps = dataObj['timestamps'];
+//           while(index < 1000 && timestamps[index]< start){
+//               index++;
+//           }
+//           console.log(`index is ${index} and runs is ${runs}`);
+//           if(index + Number(runs) >= 1000){
+//             console.log('in here')
+//           return res.send({success : false, reason : "not enough records for this"})
+//           }
+//           else {
+//             timestamp = timestamps[index + Number(runs)-1];
+//             recordsData = dataObj[deviceIMEI].slice(index, index+runs);
+//           }
+//           recordsData.map((record, index) =>{
+//             let k = accLevels.length -1;
+//             let flag = false;
+//             while(!flag && k >0){
+//               if(record >= accLevels[k]){
+//                 flag = true;
+//                 score += penLevels[k]
+//               }
+//               k--;
+//             }
+//          })
 
-          const average = Math.round(score*100/runs)/100;
-          const ratingLevels = await DAOInstance.methods.getRatings().call();
-          let ratingLabels = Array(ratingLevels.length);
-          for (let j =0; j<ratingLevels.length; j++){
-            ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
-          }
-          console.log(ratingLabels);
-          console.log(ratingLevels);
-          let rating = ratingLabels[ratingLabels.length-1];
-          let level = ratingLevels.length;
-          let indexLevel = 1;
-          let setLevel = false;
-          while (indexLevel < ratingLevels.length){
-            if(average > ratingLevels[level-indexLevel]){
-              level = indexLevel;
-              rating = ratingLabels[ratingLevels.length - indexLevel];
-              indexLevel = ratingLevels.length;
-              setLevel = true;
-            }
-            indexLevel++;
-          }
-          if(!setLevel){
-            rating = ratingLabels[0];
-          }
+//           const average = Math.round(score*100/runs)/100;
+//           const ratingLevels = await DAOInstance.methods.getRatings().call();
+//           let ratingLabels = Array(ratingLevels.length);
+//           for (let j =0; j<ratingLevels.length; j++){
+//             ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
+//           }
+//           console.log(ratingLabels);
+//           console.log(ratingLevels);
+//           let rating = ratingLabels[ratingLabels.length-1];
+//           let level = ratingLevels.length;
+//           let indexLevel = 1;
+//           let setLevel = false;
+//           while (indexLevel < ratingLevels.length){
+//             if(average > ratingLevels[level-indexLevel]){
+//               level = indexLevel;
+//               rating = ratingLabels[ratingLevels.length - indexLevel];
+//               indexLevel = ratingLevels.length;
+//               setLevel = true;
+//             }
+//             indexLevel++;
+//           }
+//           if(!setLevel){
+//             rating = ratingLabels[0];
+//           }
 
-          //create and upload JSON data for token URI
-          let tokenJSON = {};
-          tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
-          tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
-          tokenJSON['image'] = imageURI;
-          tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
+//           //create and upload JSON data for token URI
+//           let tokenJSON = {};
+//           tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
+//           tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
+//           tokenJSON['image'] = imageURI;
+//           tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
 
-          const tokenFile = await uploadJSONPinata(tokenJSON);
-          const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
-          const base16Hash = new CID(tokenFile.IpfsHash).toV1().toString('base16');
-          //verify with base16Hash.slice(9)
-          let inputArgs = [5, 20]
-          const python = spawn('bash', ['./python-sign.sh', ...inputArgs])
-          let signature_vars = []
+//           const tokenFile = await uploadJSONPinata(tokenJSON);
+//           const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
+//           const base16Hash = new CID(tokenFile.IpfsHash).toV1().toString('base16');
+//           //verify with base16Hash.slice(9)
+//           let inputArgs = [5, 20]
+//           const python = spawn('bash', ['./python-sign.sh', ...inputArgs])
+//           let signature_vars = []
 
-          // collect data from script
-          python.stdout.on('data', function (data) {
-            console.log('Pipe data from python script ...')
-            signature_vars.push(data)
-          })
+//           // collect data from script
+//           python.stdout.on('data', function (data) {
+//             console.log('Pipe data from python script ...')
+//             signature_vars.push(data)
+//           })
 
-          // in close event we are sure that stream is from child process is closed
-          python.on('close', (code) => {
-            console.log(`child process close all stdio with code ${code}`)
-          })
+//           // in close event we are sure that stream is from child process is closed
+//           python.on('close', (code) => {
+//             console.log(`child process close all stdio with code ${code}`)
+//           })
 
-          console.log(`${nonce} and ${address} and ${Verify.networks[chainId].address} and ${timestamp} and ${tokenURI}`)
+//           console.log(`${nonce} and ${address} and ${Verify.networks[chainId].address} and ${timestamp} and ${tokenURI}`)
 
-          const signature = await verifyNFTInfo(nonce, address, Verify.networks[chainId].address, timestamp, tokenURI, 0);
+//           const signature = await verifyNFTInfo(nonce, address, Verify.networks[chainId].address, timestamp, tokenURI, 0);
 
-          console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
+//           console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
 
-          res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});  
-        }
-      });
-    }
-  })
+//           res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});  
+//         }
+//       });
+//     }
+   })
 
 //route to upload images, called in the beginning of mint function client side
 app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
   const address = req.params.address;
   console.log(address)
-  const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
+  //const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
   console.log(req.file)
-  fs.renameSync(req.file.path, `./uploads/${address}_${tokenIds.length}.png`);
-  const urlHash = await uploadImagePinata(`uploads/${address}_${tokenIds.length}.png`);
+  //fs.renameSync(req.file.path, `./uploads/${address}_${tokenIds.length}.png`);
+  fs.renameSync(req.file.path, `./uploads/${address}_1.png`);
+  const urlHash = await uploadImagePinata(`uploads/${address}_1.png`);
+  console.log(urlHash.IpfsHash)
   res.send({success : true, imageURL : urlHash.IpfsHash})
 
 })
 
 //dao join/update call
-app.get('/dao-join-update/:address', async (req, res) => {
-  const address = req.params.address;
-  console.log(address)
-  const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
-  if(tokenIds.length==0){
-    return res.send({success : false, reason : "address has no minted tokens"})
-  }
-  const currentDAORound = await DAOInstance.methods.getCurrentRound().call();
-  const currentDAOToken = await DAOInstance.methods.currentTokenIdForAddr(currentDAORound, address).call();
-  if(currentDAOToken > 0 && currentDAOToken == tokenIds[tokenIds.length-1]){
-    return res.send({success : false, reason : "needs to mint a new token"})
-  }
-  const TokenURI = await NFTInstance.methods.tokenURI(tokenIds[tokenIds.length-1]).call();
-  const tokenMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${TokenURI.slice(7)}`);
-  const tokenMetaDataBody = await tokenMetaData.json();
-  const level = Number(tokenMetaDataBody.attributes.level.split(" ")[0]);
-  const costs = await DAOInstance.methods.getCosts().call();
-  const timeStamp = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
-  const nonce = await VerifyInstance.methods.nonces(address).call();
-  const signature = await verifyDAOInfo(nonce, address, Verify.networks[chainId].address, timeStamp, costs.length-level+1, tokenIds[tokenIds.length-1]);
-  console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}, tokenId : ${tokenIds[tokenIds.length-1]}, and timestamp is ${timeStamp}`)
+// app.get('/dao-join-update/:address', async (req, res) => {
+//   const address = req.params.address;
+//   console.log(address)
+//   const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
+//   if(tokenIds.length==0){
+//     return res.send({success : false, reason : "address has no minted tokens"})
+//   }
+//   const currentDAORound = await DAOInstance.methods.getCurrentRound().call();
+//   const currentDAOToken = await DAOInstance.methods.currentTokenIdForAddr(currentDAORound, address).call();
+//   if(currentDAOToken > 0 && currentDAOToken == tokenIds[tokenIds.length-1]){
+//     return res.send({success : false, reason : "needs to mint a new token"})
+//   }
+//   const TokenURI = await NFTInstance.methods.tokenURI(tokenIds[tokenIds.length-1]).call();
+//   const tokenMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${TokenURI.slice(7)}`);
+//   const tokenMetaDataBody = await tokenMetaData.json();
+//   const level = Number(tokenMetaDataBody.attributes.level.split(" ")[0]);
+//   const costs = await DAOInstance.methods.getCosts().call();
+//   const timeStamp = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
+//   const nonce = await VerifyInstance.methods.nonces(address).call();
+//   const signature = await verifyDAOInfo(nonce, address, Verify.networks[chainId].address, timeStamp, costs.length-level+1, tokenIds[tokenIds.length-1]);
+//   console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}, tokenId : ${tokenIds[tokenIds.length-1]}, and timestamp is ${timeStamp}`)
 
-  return res.send({success : true, level : costs.length-level+1, timeStamp : timeStamp, tokenId : tokenIds[tokenIds.length-1], r : signature.r, s : signature.s, v : signature.v});
+//   return res.send({success : true, level : costs.length-level+1, timeStamp : timeStamp, tokenId : tokenIds[tokenIds.length-1], r : signature.r, s : signature.s, v : signature.v});
   
-})
+// })
 
 //helpers for uploading image and JSON to Pinata through API for image URI and token URI
 async function uploadImagePinata(file){
@@ -353,8 +376,8 @@ const ethersSign = async function (wallet, hash) {
 
 //Local address data map
 const addressIMEI = {
-  "0x07f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
-  "0x06fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
-  "0x051df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
-  "0x07da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
+  "0x7f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
+  "0x6fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
+  "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
+  "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
 }

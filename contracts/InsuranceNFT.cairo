@@ -217,6 +217,15 @@ func getLastTokenId{syscall_ptr: felt*,
     return (last_token_Id)
 end
 
+@view
+func getNumberOfTokensByAddress{syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }(address : felt) -> (arr_length : felt):
+    let (token_len : felt) = tokens_by_address_len.read(address)
+    return (token_len)
+end
+
 #
 # Externals
 #
