@@ -20,6 +20,10 @@ const signingKey = process.env.PRIVATE_KEY;
 const starknetPrivKey = process.env.SERVER_STARKNET_PRIVATE_KEY;
 const starknetNFTAddr = process.env.STARKNET_NFT;
 const starknetDAOAddr = process.env.STARKNET_DAO;
+const argentAddr_1 = process.env.ARGENT_ADDR_1;
+const argentAddr_2 = process.env.ARGENT_ADDR_2;
+const argentAddr_3 = process.env.ARGENT_ADDR_3;
+const argentAddr_4 = process.env.ARGENT_ADDR_4;
 
 const app = express(); 
 const upload = multer({dest: 'uploads/'})
@@ -89,21 +93,6 @@ app.get('/user-nfts/:address', async (req, res) => {
     console.log(tokenURIs)
     return res.send({success : true, results : tokenURIs, start : start});
   }
-  /*const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
-  const start = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
-  let tokenURIs = [tokenIds.length];
-  let tokenMetaData = [tokenIds.length]
-  if(tokenIds.length==0){
-    return res.send({success: false, results : [], start : 0})
-  }
-  else{
-    
-    for (var i =0; i<tokenIds.length; i++){
-      tokenURIs[i] =  await NFTInstance.methods.tokenURI(tokenIds[i]).call();
-    }
-    
-    return res.send({success : true, results : tokenURIs, start : start});
-  }*/
 });
 
 //used to render all NFTs for all Dao holdings
@@ -375,9 +364,15 @@ const ethersSign = async function (wallet, hash) {
 }
 
 //Local address data map
+// const addressIMEI = {
+//   "0x7f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
+//   "0x6fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
+//   "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
+//   "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
+// }
 const addressIMEI = {
-  "0x7f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
-  "0x6fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
-  "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
-  "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
-}
+    argentAddr_1 : "100000000000019",
+    argentAddr_2 : "100000000000023",
+    argentAddr_3 : "100000000000024",
+    argentAddr_4 : "100000000000025"
+  }
