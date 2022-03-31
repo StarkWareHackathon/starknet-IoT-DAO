@@ -595,7 +595,7 @@ func _write_to_array_uint256{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, r
         return ()
     end
 
-    return _write_to_array(array_len - 1, array, mapping_ref)
+    return _write_to_array_uint256(array_len - 1, array, mapping_ref)
 end
 
 func _get_array_uint256{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -614,7 +614,7 @@ func _get_array_uint256{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
         return ()
     end
 
-    return _get_array(array_len - 1, array, mapping_ref)
+    return _get_array_uint256(array_len - 1, array, mapping_ref)
 end
 
 func _get_current_balance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
