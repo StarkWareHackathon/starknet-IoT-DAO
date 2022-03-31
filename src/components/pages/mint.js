@@ -73,7 +73,7 @@ const Mint = function () {
 
   const { invokeInsuranceNftMint, invokeSetTokenUri } = useInsuranceNftContract(account, contract);
 
-  const { data: getLastTokenId, error: getLastTokenIdError } = useStarknetCall({ contract, method: 'getLastTokenId', args: [account] })
+  const { data: getLastTokenId, error: getLastTokenIdError } = useStarknetCall({ contract, method: 'getLastTokenId', args: ["0x03ceac5dd4b48f61d6680d3d16adf504ba3dadff55f4eb2389cadbde9731464d"] })
   const { data: tokenURI, error: tokenURIError } = useStarknetCall({ contract, method: 'tokenURI', args: [[getLastTokenId && getLastTokenId[0].low.toString(), getLastTokenId && getLastTokenId[0].high.toString()]] })
 
   if (getLastTokenId) {
@@ -91,6 +91,7 @@ const Mint = function () {
         const body = await response.json();
         const initResponse = await fetch(`/init-device-check/${account}`);
         const initBody = await initResponse.json();
+        console.log(initBody, 'initBody')
         const yearAgo = Math.round(Date.now() / 1000) - 12 * 30 * 24 * 3600;
         if (body.start !== 0 && body.start > yearAgo) {
           setStart(body.start);
@@ -292,7 +293,7 @@ const Mint = function () {
     //adding file that was uploaded with name avatar (name doesn't really matter)
     const formData = new FormData();
     formData.append('avatar', file);
-
+    console.log("STARTING MINT")
     // window.alert('made it here before post')
     //use axios to post image with multer and upload to pinata
     const mintImageRes = await axios.post(`/mint-upload/${account}`, formData, {
@@ -300,18 +301,21 @@ const Mint = function () {
         'Content-type': 'multipart/form-data'
       }
     });
-
+    console.log(mintImageRes, 'mintImageRes')
     //set URI of uploaded image from pinata
     setCurrentImageURI(mintImageRes.data.imageURL);
 
     //call mint function with start, runs, and image URI
     const mintRes = await fetch(`/mint/${account}?runs=${amountRuns}&start=${startMint}&imageuri=${mintImageRes.data.imageURL}`);
+
     const mintBody = await mintRes.json();
+    console.log(mintBody, 'mintRes')
     if (mintBody.reason) {
+      console.log("IN THE IF WE DONT WANT TO BE IN")
       window.alert(mintBody.reason);
       return;
-    }
-    else {
+    } else {
+      console.log("IN THE ELSE WE WANT TO BE IN")
       setScore(mintBody.score);
       setRating(mintBody.rating);
       setAverage(mintBody.average);
@@ -328,6 +332,7 @@ const Mint = function () {
 
   //after all the calculations for score and rating and getting a token URI, proceed to mint NFT if user desires
   const finishMint = async () => {
+    console.log("FINISHMINT")
     invokeInsuranceNftMint(hexedTokenUri)
     // await NFTContract.methods.mintTokens(pendingTokenURI, pendingTimeStamp, r, s, v).send({ from: account })
     //   .on('receipt', async function (receipt) {
@@ -451,7 +456,7 @@ const Mint = function () {
 
                 {pendingMint && <h5>Score: {score} and rating : {rating}</h5>}
 
-                {deviceIMEI !== "" || account ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={() => startMint()} /> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={() => finishMint()} /></span>}
+                {deviceIMEI !== "" ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={() => startMint()} /> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={() => finishMint()} /></span>}
 
                 {daoShow && <span style={{ marginLeft: "3em" }}><input type="button" id="submit" className="btn-main" value="Join/Update Dao" onClick={() => joinUpdateDao()} /> &ensp; Rating: {daoRating} &ensp; Level: {daoLevel}</span>}
               </div>
