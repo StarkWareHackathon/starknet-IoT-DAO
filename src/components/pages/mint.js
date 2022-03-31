@@ -66,14 +66,13 @@ const Mint = function () {
   const [currentTokenId, setCurrentTokenId] = useState('');
 
   const { globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId } = useContext(AccountContext);
-  const myAddress = '0x03ceac5dd4b48f61d6680d3d16adf504ba3dadff55f4eb2389cadbde9731464d';
-  const insuranceNftAddress = '0x022a3539a4e8f029819b74d24d0f88a75750b948359bb50123f195518749167d';
+
   const { account, library } = useStarknet()
   const { contract, loading, error } = useNftContract()
 
   const { invokeInsuranceNftMint, invokeSetTokenUri } = useInsuranceNftContract(account, contract);
 
-  const { data: getLastTokenId, error: getLastTokenIdError } = useStarknetCall({ contract, method: 'getLastTokenId', args: ["0x03ceac5dd4b48f61d6680d3d16adf504ba3dadff55f4eb2389cadbde9731464d"] })
+  const { data: getLastTokenId, error: getLastTokenIdError } = useStarknetCall({ contract, method: 'getLastTokenId', args: [account] })
   const { data: tokenURI, error: tokenURIError } = useStarknetCall({ contract, method: 'tokenURI', args: [[getLastTokenId && getLastTokenId[0].low.toString(), getLastTokenId && getLastTokenId[0].high.toString()]] })
 
   if (getLastTokenId) {
