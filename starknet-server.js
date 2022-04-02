@@ -76,6 +76,10 @@ app.get('/user-nfts/:address', async (req, res) => {
     calldata: [callDataString.toString()],
   });
 
+  //test
+  
+  //end test
+
   //let tokenURIs = [tokenIds.length];
   let tokenURIs = Array(1)
   const start = parseInt(startResult.result[0])
@@ -126,17 +130,34 @@ app.get('/mint/:address', async (req, res) => {
   const base16IPFS = new CID(req.query.imageuri).toV1().toString('base16')
   const imageURI = `ipfs://${base16IPFS}`;
   console.log(`runs: ${runs} and start : ${start} and URI : ${imageURI}`);
+  const callDataString = ethers.BigNumber.from(address)
+  const lastTokenId = await defaultProvider.callContract({
+    contractAddress: starknetNFTAddr,
+    entrypoint: "getLastTokenId",
+    calldata: [callDataString.toString()],
+  });
+
+  const startResult = await defaultProvider.callContract({
+    contractAddress: starknetNFTAddr,
+    entrypoint: "getLastTimestamp",
+    calldata: [callDataString.toString()],
+  });
+  const startCheck = parseInt(startResult.result[0])
+  if((startCheck !==0  && startCheck > start && yearAgo < start) || !(runs>=100 && runs<=500)){
+      return res.send({success : false, reason : "invalid runs number or start"})
+    }
+  //get info needed for calculating score and message later
+  const penLevelsResult = await defaultProvider.callContract({
+    contractAddress: starknetDAOAddr,
+    entrypoint: "get_penalty_levels",
+    calldata: ['0'],
+  });
+  const rawPenLevels = penLevelsResult.result.map((value) =>{
+    return parseInt(value)
+  })
   return
 
-//   // get info from NFT and DAO smart contract we will need and check start is valid
-//   const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
-//   const startCheck = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
-//   const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
-//   if((startCheck !==0  && startCheck > start && yearAgo < start) || !(runs>=100 && runs<=500)){
-//     return res.send({success : false, reason : "invalid runs number or start"})
-//   }
-
-//   //get info needed for calculating score and message later
+   
 //   const accLevels = await DAOInstance.methods.getAccLevels().call();
 //   const rawPenLevels = await DAOInstance.methods.getPenaltyLevels().call();
 //   const costs = await DAOInstance.methods.getCosts().call();
@@ -364,15 +385,15 @@ const ethersSign = async function (wallet, hash) {
 }
 
 //Local address data map
-// const addressIMEI = {
-//   "0x7f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
-//   "0x6fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
-//   "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
-//   "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
-// }
 const addressIMEI = {
-    argentAddr_1 : "100000000000019",
-    argentAddr_2 : "100000000000023",
-    argentAddr_3 : "100000000000024",
-    argentAddr_4 : "100000000000025"
-  }
+  "0x7f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
+  "0x6fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
+  "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
+  "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
+}
+// const addressIMEI = {
+//     argentAddr_1 : "100000000000019",
+//     argentAddr_2 : "100000000000023",
+//     argentAddr_3 : "100000000000024",
+//     argentAddr_4 : "100000000000025"
+//   }
