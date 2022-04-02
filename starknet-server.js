@@ -13,6 +13,7 @@ const fs = require('fs');
 const fetch = require('cross-fetch');
 const CID = require('cids');
 const axios = require('axios');
+const hex2ascii = require('hex2ascii');
 const pinata = pinataSDK(process.env.PERSONAL_PINATA_PUBLIC_KEY, process.env.PERSONAL_PINATA_SECRET_KEY);
 const projectID = process.env.PROJECT_ID;
 const testNet = process.env.TEST_NET;
@@ -30,6 +31,7 @@ const upload = multer({dest: 'uploads/'})
 
 let chainId;
 let useLocalData = true;
+let initObject = {};
 
 const port = process.env.SERVER_PORT || 6000;
 
@@ -43,6 +45,71 @@ app.get('/nft-store/:address', async (req, res) => {
     object = await dataFetch(address, true) 
 
   res.send({success : address, results : object}); 
+});
+
+app.get('/labels', async (req, res) => {
+  const labelLen= await defaultProvider.callContract({
+    contractAddress: starknetDAOAddr,
+    entrypoint: "get_label_len",
+    calldata: [],
+  });
+  const maxIndex = parseInt(labelLen.result[0])
+  console.log(maxIndex)
+  labelsArr = Array(maxIndex)
+  const rawCosts= await defaultProvider.callContract({
+    contractAddress: starknetDAOAddr,
+    entrypoint: "get_costs",
+    calldata: [],
+  });
+  const costs = rawCosts.result.slice(1).map(value => {
+    return parseInt(value)
+  })
+  console.log(costs)
+  const rawRatings= await defaultProvider.callContract({
+    contractAddress: starknetDAOAddr,
+    entrypoint: "get_ratings",
+    calldata: ['0'],
+  });
+  const ratings = rawRatings.result.slice(1).map(value => {
+    return parseInt(value)
+  })
+  console.log(ratings)
+  const rawAccLevels= await defaultProvider.callContract({
+    contractAddress: starknetDAOAddr,
+    entrypoint: "get_acc_levels",
+    calldata: ['0'],
+  });
+  const accLevels = rawAccLevels.result.slice(1).map(value => {
+    return parseInt(value)
+  })
+  console.log(accLevels)
+  const rawPenLevels= await defaultProvider.callContract({
+    contractAddress: starknetDAOAddr,
+    entrypoint: "get_penalty_levels",
+    calldata: ['0'],
+  });
+  const penLevels = rawPenLevels.result.slice(1).map(value => {
+    return parseInt(value)
+  })
+  console.log(penLevels)
+  for (index = 1; index<=labelsArr.length; index++){
+    const rawLabel= await defaultProvider.callContract({
+      contractAddress: starknetDAOAddr,
+      entrypoint: "get_label_at_index",
+      calldata: [`${index}`],
+    });
+    console.log(rawLabel.result)
+    labelsArr[index-1] = hex2ascii(rawLabel.result[0])
+  }
+  console.log(labelsArr)
+  
+  initObject["labels"] = labelsArr;
+  initObject["costs"] = costs;
+  initObject["ratings"] = ratings;
+  initObject["accLevels"] = accLevels;
+  initObject["penLevels"] = penLevels;
+
+res.send({success : true, results : initObject}); 
 });
 
 //initial check called in useEffect to see if address has registered device
@@ -75,6 +142,10 @@ app.get('/user-nfts/:address', async (req, res) => {
     entrypoint: "getLastTimestamp",
     calldata: [callDataString.toString()],
   });
+
+  //test
+
+  //end test
 
   //let tokenURIs = [tokenIds.length];
   let tokenURIs = Array(1)
@@ -126,111 +197,179 @@ app.get('/mint/:address', async (req, res) => {
   const base16IPFS = new CID(req.query.imageuri).toV1().toString('base16')
   const imageURI = `ipfs://${base16IPFS}`;
   console.log(`runs: ${runs} and start : ${start} and URI : ${imageURI}`);
-  return
+  const callDataString = ethers.BigNumber.from(address)
+  const lastTokenId = await defaultProvider.callContract({
+    contractAddress: starknetNFTAddr,
+    entrypoint: "getLastTokenId",
+    calldata: [callDataString.toString()],
+  });
 
-//   // get info from NFT and DAO smart contract we will need and check start is valid
-//   const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
-//   const startCheck = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
-//   const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
-//   if((startCheck !==0  && startCheck > start && yearAgo < start) || !(runs>=100 && runs<=500)){
-//     return res.send({success : false, reason : "invalid runs number or start"})
-//   }
+  const startResult = await defaultProvider.callContract({
+    contractAddress: starknetNFTAddr,
+    entrypoint: "getLastTimestamp",
+    calldata: [callDataString.toString()],
+  });
+  const startCheck = parseInt(startResult.result[0])
+  if((startCheck !==0  && startCheck > start && yearAgo < start) || !(runs>=100 && runs<=500)){
+      return res.send({success : false, reason : "invalid runs number or start"})
+    }
+  //get info needed for calculating score and message later
+  // const labelLen= await defaultProvider.callContract({
+  //   contractAddress: starknetDAOAddr,
+  //   entrypoint: "get_label_len",
+  //   calldata: [],
+  // });
+  // const maxIndex = parseInt(labelLen.result[0])
+  // console.log(maxIndex)
+  // labelsArr = Array(maxIndex)
+  // const rawCosts= await defaultProvider.callContract({
+  //   contractAddress: starknetDAOAddr,
+  //   entrypoint: "get_costs",
+  //   calldata: [],
+  // });
+  // const costs = rawCosts.result.slice(1).map(value => {
+  //   return parseInt(value)
+  // })
+  // console.log(costs)
+  // const rawRatings= await defaultProvider.callContract({
+  //   contractAddress: starknetDAOAddr,
+  //   entrypoint: "get_ratings",
+  //   calldata: ['0'],
+  // });
+  // const ratings = rawRatings.result.slice(1).map(value => {
+  //   return parseInt(value)
+  // })
+  // console.log(ratings)
+  // const rawAccLevels= await defaultProvider.callContract({
+  //   contractAddress: starknetDAOAddr,
+  //   entrypoint: "get_acc_levels",
+  //   calldata: ['0'],
+  // });
+  // const accLevels = rawAccLevels.result.slice(1).map(value => {
+  //   return parseInt(value)
+  // })
+  // console.log(accLevels)
+  // const rawPenLevels= await defaultProvider.callContract({
+  //   contractAddress: starknetDAOAddr,
+  //   entrypoint: "get_penalty_levels",
+  //   calldata: ['0'],
+  // });
+  // const penLevels = rawPenLevels.result.slice(1).map(value => {
+  //   return parseInt(value)
+  // })
+  // console.log(penLevels)
+  // for (index = 1; index<=labelsArr.length; index++){
+  //   const rawLabel= await defaultProvider.callContract({
+  //     contractAddress: starknetDAOAddr,
+  //     entrypoint: "get_label_at_index",
+  //     calldata: [`${index}`],
+  //   });
+  //   console.log(rawLabel.result)
+  //   labelsArr[index-1] = hex2ascii(rawLabel.result[0])
+  // }
+  // console.log(labelsArr)
+  
+  costs = initObject.costs;
+  ratingLabels = initObject.labels;
+  accLevels = initObject.accLevels;
+  penLevels = initObject.penLevels;
+  ratingLevels = initObject.ratings;
+  console.log(penLevels);
+  console.log(accLevels);
+  console.log(costs);
+  console.log(ratingLabels);
+  console.log(ratingLevels);
+  
 
-//   //get info needed for calculating score and message later
-//   const accLevels = await DAOInstance.methods.getAccLevels().call();
-//   const rawPenLevels = await DAOInstance.methods.getPenaltyLevels().call();
-//   const costs = await DAOInstance.methods.getCosts().call();
 //   const nonce = await VerifyInstance.methods.nonces(address).call();
-//   let penLevels = Array(rawPenLevels.length);
-//   for(var i=0 ; i<penLevels.length; i++){
-//     if(i==0){
-//       penLevels[i] = Number(rawPenLevels[i]);
-//     }
-//     else{
-//       penLevels[i] = Number(penLevels[i-1]) + Number(rawPenLevels[i]);
-//     }
-//   }
 
-//   let recordsData, timestamp;
-//   let score = 0;
-//   let index =0;
-//   let deviceExist = address in addressIMEI;
-//   if (!deviceExist){
-//     return res.send({success : false, reason : "not enough records for this"})
-//   }
-//   else{
-//     const deviceIMEI = addressIMEI[address];
-//     fs.readFile('./backupDataStarknet.json', 'utf8', async (err, data) => {
+  let recordsData, timestamp;
+  let score = 0;
+  let index =0;
+  let deviceExist = address in addressIMEI;
+  if (!deviceExist){
+    return res.send({success : false, reason : "not enough records for this"})
+  }
+  else{
+    const deviceIMEI = addressIMEI[address];
+    fs.readFile('./backupDataStarknet.json', 'utf8', async (err, data) => {
 
-//       if (err) {
-//           console.log(`Error reading file from disk: ${err}`);
-//           return res.send({success : false, reason : "error reading json data"})
-//       } else {
+      if (err) {
+          console.log(`Error reading file from disk: ${err}`);
+          return res.send({success : false, reason : "error reading json data"})
+      } else {
   
-//           // parse JSON string to JSON object
-//           const dataObj = JSON.parse(data);
+          // parse JSON string to JSON object
+          const dataObj = JSON.parse(data);
   
-//           const timestamps = dataObj['timestamps'];
-//           while(index < 1000 && timestamps[index]< start){
-//               index++;
-//           }
-//           console.log(`index is ${index} and runs is ${runs}`);
-//           if(index + Number(runs) >= 1000){
-//             console.log('in here')
-//           return res.send({success : false, reason : "not enough records for this"})
-//           }
-//           else {
-//             timestamp = timestamps[index + Number(runs)-1];
-//             recordsData = dataObj[deviceIMEI].slice(index, index+runs);
-//           }
-//           recordsData.map((record, index) =>{
-//             let k = accLevels.length -1;
-//             let flag = false;
-//             while(!flag && k >0){
-//               if(record >= accLevels[k]){
-//                 flag = true;
-//                 score += penLevels[k]
-//               }
-//               k--;
-//             }
-//          })
+          const timestamps = dataObj['timestamps'];
+          while(index < 1000 && timestamps[index]< start){
+              index++;
+          }
+          console.log(`index is ${index} and runs is ${runs}`);
+          if(index + Number(runs) >= 1000){
+            console.log('in here not enough records')
+          return res.send({success : false, reason : "not enough records for this"})
+          }
+          else {
+            timestamp = timestamps[index + Number(runs)-1];
+            recordsData = dataObj[deviceIMEI].slice(index, index + Number(runs));
+          }
+          console.log(`at recordsData : length is ${recordsData.length}`)
+          
+          recordsData.map((record, index) =>{
+            if(index<10 || index > 90){
+            console.log(score)
+          }
+            let k = accLevels.length -1;
+            let flag = false;
+            while(!flag && k >0){
+              if(record >= accLevels[k]){
+                flag = true;
+                score += penLevels[k]
+              }
+              k--;
+            }
+         })
 
-//           const average = Math.round(score*100/runs)/100;
+          const average = Math.round(score*100/runs)/100;
+          console.log(`math avg : ${average}`);
 //           const ratingLevels = await DAOInstance.methods.getRatings().call();
 //           let ratingLabels = Array(ratingLevels.length);
 //           for (let j =0; j<ratingLevels.length; j++){
 //             ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
 //           }
-//           console.log(ratingLabels);
-//           console.log(ratingLevels);
-//           let rating = ratingLabels[ratingLabels.length-1];
-//           let level = ratingLevels.length;
-//           let indexLevel = 1;
-//           let setLevel = false;
-//           while (indexLevel < ratingLevels.length){
-//             if(average > ratingLevels[level-indexLevel]){
-//               level = indexLevel;
-//               rating = ratingLabels[ratingLevels.length - indexLevel];
-//               indexLevel = ratingLevels.length;
-//               setLevel = true;
-//             }
-//             indexLevel++;
-//           }
-//           if(!setLevel){
-//             rating = ratingLabels[0];
-//           }
+          console.log(ratingLabels);
+          console.log(ratingLevels);
+          let rating = ratingLabels[ratingLabels.length-1];
+          let level = ratingLevels.length;
+          let indexLevel = 1;
+          let setLevel = false;
+          while (indexLevel < ratingLevels.length){
+            if(average > ratingLevels[level-indexLevel]){
+              level = indexLevel;
+              rating = ratingLabels[indexLevel-1];
+              indexLevel = ratingLevels.length;
+              setLevel = true;
+            }
+            indexLevel++;
+          }
+          if(!setLevel){
+            rating = ratingLabels[0];
+          }
 
-//           //create and upload JSON data for token URI
-//           let tokenJSON = {};
-//           tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
-//           tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
-//           tokenJSON['image'] = imageURI;
-//           tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
+          //create and upload JSON data for token URI
+          let tokenJSON = {};
+          tokenJSON['name'] = `Starknet DAO NFT #${parseInt(lastTokenId.result[0]) +1} for ${address}`;
+          tokenJSON['description'] = "Starknet DAO utilizing verified IoT data from Starknet blockchain";
+          tokenJSON['image'] = imageURI;
+          tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
 
-//           const tokenFile = await uploadJSONPinata(tokenJSON);
-//           const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
-//           const base16Hash = new CID(tokenFile.IpfsHash).toV1().toString('base16');
-//           //verify with base16Hash.slice(9)
+          const tokenFile = await uploadJSONPinata(tokenJSON);
+          const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
+          const base16Hash = new CID(tokenFile.IpfsHash).toV1().toString('base16');
+          console.log(`base 16 hash is ${base16Hash}`);
+          //verify with base16Hash.slice(9)
 //           let inputArgs = [5, 20]
 //           const python = spawn('bash', ['./python-sign.sh', ...inputArgs])
 //           let signature_vars = []
@@ -252,10 +391,12 @@ app.get('/mint/:address', async (req, res) => {
 
 //           console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
 
-//           res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});  
-//         }
-//       });
-//     }
+//           res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});
+          console.log('made it to end')
+          return
+        }
+      });
+    }
    })
 
 //route to upload images, called in the beginning of mint function client side
@@ -364,15 +505,15 @@ const ethersSign = async function (wallet, hash) {
 }
 
 //Local address data map
-// const addressIMEI = {
-//   "0x7f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
-//   "0x6fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
-//   "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
-//   "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
-// }
 const addressIMEI = {
-    argentAddr_1 : "100000000000019",
-    argentAddr_2 : "100000000000023",
-    argentAddr_3 : "100000000000024",
-    argentAddr_4 : "100000000000025"
-  }
+  "0x7f5ed1b71b101d046244ba6703a3bae5cfb2a5b34af4a841537f199974406d9" : "100000000000019",
+  "0x6fb00605dff8c1086aa8cea1307f82279d7df741ce588e775303ac47c1690e8" : "100000000000023",
+  "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1" : "100000000000024",
+  "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328" : "100000000000025"
+}
+// const addressIMEI = {
+//     argentAddr_1 : "100000000000019",
+//     argentAddr_2 : "100000000000023",
+//     argentAddr_3 : "100000000000024",
+//     argentAddr_4 : "100000000000025"
+//   }

@@ -7,6 +7,7 @@ import { useWeb3React } from "@web3-react/core";
 import { AccountContext } from '../../state/contexts/AccountContext';
 import { useInsuranceNftContract } from '../../state/hooks/useInsuranceNftContractInvoke';
 import { useNftContract } from '../../state/hooks/useNftContract';
+import { useInsuranceDAOMintContract } from '../../state/hooks/useDAOMintContract';
 import { useGetTokenFromAddress } from '../../state/hooks/useGetTokenFromAddress'
 import axios from 'axios';
 import Table from 'react-bootstrap/Table';
@@ -69,12 +70,15 @@ const Mint = function () {
   const myAddress = '0x03ceac5dd4b48f61d6680d3d16adf504ba3dadff55f4eb2389cadbde9731464d';
   const insuranceNftAddress = '0x022a3539a4e8f029819b74d24d0f88a75750b948359bb50123f195518749167d';
   const { account, library } = useStarknet()
-  const { contract, loading, error } = useNftContract()
+  const { contract : nftCon, loading : nftLoad, error: nftError} = useNftContract()
+  const { contract : daoMintCont, loading: daoMintLoad, error : daoMintError} = useInsuranceDAOMintContract();
 
-  const { invokeInsuranceNftMint, invokeSetTokenUri } = useInsuranceNftContract(account, contract);
 
-  const { data: getLastTokenId, error: getLastTokenIdError } = useStarknetCall({ contract, method: 'getLastTokenId', args: [account] })
-  const { data: tokenURI, error: tokenURIError } = useStarknetCall({ contract, method: 'tokenURI', args: [[getLastTokenId && getLastTokenId[0].low.toString(), getLastTokenId && getLastTokenId[0].high.toString()]] })
+  const { invokeInsuranceNftMint, invokeSetTokenUri } = useInsuranceNftContract(account, nftCon);
+
+  const { data: getLastTokenId, error: getLastTokenIdError } = useStarknetCall({ nftCon, method: 'getLastTokenId', args: [account] })
+  const { data: tokenURI, error: tokenURIError } = useStarknetCall({ nftCon, method: 'tokenURI', args: [[getLastTokenId && getLastTokenId[0].low.toString(), getLastTokenId && getLastTokenId[0].high.toString()]] })
+
 
   if (getLastTokenId) {
     if (tokenURI && !hexedTokenUri) {
@@ -83,6 +87,19 @@ const Mint = function () {
       setHexedTokenUri(hexUri)
     }
   }
+
+  useEffect(() => {
+    const loadLabels = async () => {
+      const labelResponse = await fetch(`/labels`);
+      const labelBody = await labelResponse.json();
+      setRatingLabels(labelBody.results.labels);
+      setCostLevels(labelBody.results.costs);
+      setRatingBreaks(labelBody.results.ratings);
+      setAccLevels(labelBody.results.accLevels);
+      setPenaltyLevels(labelBody.results.penLevels);
+    }
+    loadLabels();
+  }, [])
 
   useEffect(() => {
     const loadUserNFTData = async () => {
@@ -235,8 +252,7 @@ const Mint = function () {
     "0x51df3b3b48329cd68512c1079db368685c5e527f3b9655246023d451207fed1": "author-3", "0x7da3d9da8b703afc89aa2c58ef5139de12a2dfdeca54be9b2e2711a98bb8328": "author-4"
   }
 
-  const ratingMap = { "1": "Pristine", "2": "Great", "3": "Good", "4": "Fair", "5": "Poor" }
-  const scoreMap = { "1": "< 2", "2": "2-3", "3": "3-5", "4": "5-7", "5": "> 7" }
+  //const scoreMap = { "1": "< 2", "2": "2-3", "3": "3-5", "4": "5-7", "5": "> 7" }
 
   function dateTimeUnixConverter(time, unixTime) {
     if (unixTime) {
@@ -500,7 +516,7 @@ const Mint = function () {
                   }
                   return (<tr style={{ backgroundColor: "white", border: "2px solid black" }}>
                     <td>{index + 1}</td>
-                    {index === 0 ? <td>{val}</td> : <td>{currentVal}</td>}
+                    {index === 0 ? <td>{val}</td> : <td>{val}</td>}
                     <td>{accLevels[index]}</td>
                   </tr>)
                 })}
@@ -532,8 +548,8 @@ const Mint = function () {
                   }
                   return (<tr style={{ backgroundColor: "white", border: "2px solid black" }}>
                     {/*<td>{ratingMap[index+1]}</td>*/}
-                    <td>{ratingLabels[index]}</td>
-                    <td>{formatEther(costLevels[index])} ETH</td>
+                    <td>{ratingLabels[ratingLabels.length - index - 1]}</td>
+                    <td>{costLevels[index]/100000} USDC</td>
                     <td>{scoreText}</td>
                     {/*<td>{scoreMap[index+1]}</td>*/}
                   </tr>)

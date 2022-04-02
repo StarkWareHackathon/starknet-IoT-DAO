@@ -41,6 +41,7 @@
     "express": "^4.17.1",
     "graphql": "^15.6.1",
     "graphql-tag": "^2.12.5",
+    "hex2ascii": "0.0.3",
     "js-sha3": "^0.8.0",
     "keccak": "^3.0.2",
     "multer": "^1.4.3",

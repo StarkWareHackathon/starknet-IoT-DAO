@@ -8,6 +8,6 @@ import InsuranceDAOAbi from '../../abis/InsuranceDAO.json';
 export function useInsuranceDAOContract() {
   return useContract({
     abi: InsuranceDAOAbi as Abi,
-    address: '0x022a3539a4e8f029819b74d24d0f88a75750b948359bb50123f195518749167d',
+    address: '0x025fe0c9662ac90461ebd863844227b42210e969f98dd418fb739388fd2f7db3',
   })
 }
