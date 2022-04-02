@@ -24,9 +24,9 @@ const argentAddr_1 = process.env.ARGENT_ADDR_1;
 const argentAddr_2 = process.env.ARGENT_ADDR_2;
 const argentAddr_3 = process.env.ARGENT_ADDR_3;
 const argentAddr_4 = process.env.ARGENT_ADDR_4;
-
-const app = express(); 
-const upload = multer({dest: 'uploads/'})
+console.log(argentAddr_1, "argentAddr_1")
+const app = express();
+const upload = multer({ dest: 'uploads/' })
 
 let chainId;
 let useLocalData = true;
@@ -36,26 +36,29 @@ const port = process.env.SERVER_PORT || 6000;
 app.use(cors());
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
-  
-app.get('/nft-store/:address', async (req, res) => {
-    const address = req.params.address;
-    console.log(address);
-    object = await dataFetch(address, true) 
 
-  res.send({success : address, results : object}); 
+app.get('/nft-store/:address', async (req, res) => {
+  console.log("get nft-store")
+  const address = req.params.address;
+  console.log(address);
+  object = await dataFetch(address, true)
+
+  res.send({ success: address, results: object });
 });
 
 //initial check called in useEffect to see if address has registered device
 app.get('/init-device-check/:address', async (req, res) => {
-  const address = req.params.address;
-  let deviceExist = address in addressIMEI;
-  if (!deviceExist){
+  const address = req.params.address.toString();
+  let deviceExist = addressIMEI[address] !== undefined;
+
+  if (!deviceExist) {
     console.log('no devices')
-    return res.send({IMEI : ""})
+    return res.send({ IMEI: "" })
   }
-  else{
+  else {
+    console.log("found the device")
     const deviceIMEI = addressIMEI[address];
-    return res.send({IMEI : deviceIMEI})
+    return res.send({ IMEI: deviceIMEI })
   }
 });
 
@@ -84,10 +87,10 @@ app.get('/user-nfts/:address', async (req, res) => {
   let tokenURIs = Array(1)
   const start = parseInt(startResult.result[0])
   console.log(start)
-  if(start==0){
-    return res.send({success: false, results : [], start : 0})
+  if (start == 0) {
+    return res.send({ success: false, results: [], start: 0 })
   }
-  else{
+  else {
     const lastTokenURIArr = await defaultProvider.callContract({
       contractAddress: starknetNFTAddr,
       entrypoint: "tokenURI",
@@ -95,7 +98,7 @@ app.get('/user-nfts/:address', async (req, res) => {
     });
     tokenURIs[0] = `ipfs://f01701220` + lastTokenURIArr.result[2].slice(2) + lastTokenURIArr.result[3].slice(2)
     console.log(tokenURIs)
-    return res.send({success : true, results : tokenURIs, start : start});
+    return res.send({ success: true, results: tokenURIs, start: start });
   }
 });
 
@@ -282,14 +285,14 @@ app.get('/mint/:address', async (req, res) => {
 //route to upload images, called in the beginning of mint function client side
 app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
   const address = req.params.address;
-  console.log(address)
+  console.log(address, 'address in mint-upload')
   //const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
   console.log(req.file)
   //fs.renameSync(req.file.path, `./uploads/${address}_${tokenIds.length}.png`);
   fs.renameSync(req.file.path, `./uploads/${address}_1.png`);
   const urlHash = await uploadImagePinata(`uploads/${address}_1.png`);
   console.log(urlHash.IpfsHash)
-  res.send({success : true, imageURL : urlHash.IpfsHash})
+  res.send({ success: true, imageURL: urlHash.IpfsHash })
 
 })
 
@@ -317,42 +320,42 @@ app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
 //   console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}, tokenId : ${tokenIds[tokenIds.length-1]}, and timestamp is ${timeStamp}`)
 
 //   return res.send({success : true, level : costs.length-level+1, timeStamp : timeStamp, tokenId : tokenIds[tokenIds.length-1], r : signature.r, s : signature.s, v : signature.v});
-  
+
 // })
 
 //helpers for uploading image and JSON to Pinata through API for image URI and token URI
-async function uploadImagePinata(file){
+async function uploadImagePinata(file) {
   //first part handles the pinning from a folder
-  
-  let options = { 
-      pinataOptions: { cidVersion: 0 }
+
+  let options = {
+    pinataOptions: { cidVersion: 0 }
   };
 
   let readableStreamforFile;
-             
+
   readableStreamforFile = fs.createReadStream(`./${file}`);
-              
+
   //options.pinataMetadata.keyvalues.description = `This is image ${imageNumber}`;
   const result = await pinata.pinFileToIPFS(readableStreamforFile, options)
-                        .catch((err) => {console.log(err);});
+    .catch((err) => { console.log(err); });
 
-  return result;             
+  return result;
 }
 
-async function uploadJSONPinata(obj){
+async function uploadJSONPinata(obj) {
   //first part handles the pinning from a folder
-  
-  let options = { 
-      pinataOptions: { cidVersion: 0 }
+
+  let options = {
+    pinataOptions: { cidVersion: 0 }
   };
 
   const result = await pinata.pinJSONToIPFS(obj, options)
-                        .catch((err) => {console.log(err);});
+    .catch((err) => { console.log(err); });
 
-  return result;            
+  return result;
 }
 
-const verifyNFTInfo = async function(nonce, account, contract, timestamp, URI, tokenId){
+const verifyNFTInfo = async function (nonce, account, contract, timestamp, URI, tokenId) {
   let wallet = new ethers.Wallet(signingKey);
 
   const newHashMsg = ethers.utils.solidityKeccak256(["uint256", "address", "address", "uint256", "string", "uint256"], [nonce, account, contract, timestamp, URI, tokenId]);
@@ -363,7 +366,7 @@ const verifyNFTInfo = async function(nonce, account, contract, timestamp, URI, t
 
 }
 
-const verifyDAOInfo = async function(nonce, account, contract, timestamp, level, tokenId){
+const verifyDAOInfo = async function (nonce, account, contract, timestamp, level, tokenId) {
   let wallet = new ethers.Wallet(signingKey);
 
   const newHashMsg = ethers.utils.solidityKeccak256(["uint256", "address", "address", "uint256", "uint256", "uint256"], [nonce, account, contract, timestamp, level, tokenId]);
