@@ -150,13 +150,13 @@ const Mint = function () {
         //         ratingLabels[i] = ratingLabel;
         // }
 
-        let lastTokenURI, lastMetaData, lastMetaDataBody;
-        if (hexedTokenUri && false) {
-          // lastTokenURI = await NFTContract.methods.tokenURI(ownedNFTs[ownedNFTs.length - 1]).call();
-          lastMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${hexedTokenUri}`);
-          lastMetaDataBody = await lastMetaData.json();
+        // let lastTokenURI, lastMetaData, lastMetaDataBody;
+        // if (hexedTokenUri && false) {
+        //   // lastTokenURI = await NFTContract.methods.tokenURI(ownedNFTs[ownedNFTs.length - 1]).call();
+        //   lastMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${hexedTokenUri}`);
+        //   lastMetaDataBody = await lastMetaData.json();
 
-        }
+        // }
         //       const currentDAOToken = await DAOContract.methods.currentTokenIdForAddr(currentDAORound, account).call();
         //       const isInDAO = (currentDAOToken > 0);
         //       const lastNFTTime = await NFTContract.methods.lastTimeStampNFTUsed(account).call();
@@ -331,8 +331,7 @@ const Mint = function () {
 
   //after all the calculations for score and rating and getting a token URI, proceed to mint NFT if user desires
   const finishMint = async () => {
-    console.log("FINISHMINT")
-    invokeInsuranceNftMint(hexedTokenUri)
+    invokeInsuranceNftMint(hexedTokenUri, pendingTimeStamp)
     // await NFTContract.methods.mintTokens(pendingTokenURI, pendingTimeStamp, r, s, v).send({ from: account })
     //   .on('receipt', async function (receipt) {
     //     window.alert('minted');
