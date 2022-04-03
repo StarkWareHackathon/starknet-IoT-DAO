@@ -4,6 +4,6 @@ import InsuranceNftAbi from '../../abis/InsuranceNFT.json';
 export function useNftContract() {
   return useContract({
     abi: InsuranceNftAbi.abi,
-    address: process.env.STARKNET_NFT,
+    address: process.env.REACT_APP_STARKNET_NFT,
   })
 }

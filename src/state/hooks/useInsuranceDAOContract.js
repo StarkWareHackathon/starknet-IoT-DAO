@@ -5,6 +5,6 @@ import InsuranceDAOAbi from '../../abis/InsuranceDAO.json';
 export function useInsuranceDAOContract() {
   return useContract({
     abi: InsuranceDAOAbi,
-    address: process.env.STARKNET_DAO,
+    address: process.env.REACT_APP_STARKNET_DAO,
   })
 }
