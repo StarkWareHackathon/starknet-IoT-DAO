@@ -369,6 +369,7 @@ app.get('/mint/:address', async (req, res) => {
           const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
           const base16Hash = new CID(tokenFile.IpfsHash).toV1().toString('base16');
           console.log(`base 16 hash is ${base16Hash}`);
+
           //verify with base16Hash.slice(9)
 //           let inputArgs = [5, 20]
 //           const python = spawn('bash', ['./python-sign.sh', ...inputArgs])
@@ -391,7 +392,7 @@ app.get('/mint/:address', async (req, res) => {
 
 //           console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
 
-//           res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});
+           res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : 0, s : 0, v : 0});
           console.log('made it to end')
           return
         }

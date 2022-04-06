@@ -37,7 +37,7 @@ const slidermainparticle= () => (
               </Reveal>
               <Reveal className='onStep' keyframes={fadeInUp} delay={600} duration={900} triggerOnce>
               <p className="lead col-white">
-              Pebble DAO is powered by IoTeX, and thus leverages the intersection between Blockchain and Internet of Things Technology to provide seamless solutions to the InsurTech industry.
+              Insurance DAO is powered by Starkware, and thus leverages the intersection between L2 Blockchain and Internet of Things Technology to provide seamless solutions to the InsurTech industry.
               </p>
               </Reveal>
               <div className="spacer-10"></div>
@@ -54,7 +54,7 @@ const slidermainparticle= () => (
 
                           <div className="col-lg-4 col-md-6 col-sm-4 mb30">
                               <div className="de_count text-left">
-                                  <h3><span>Pebble Trackers</span></h3>
+                                  <h3><span>IoT Trackers</span></h3>
                                   
                               </div>
                           </div>

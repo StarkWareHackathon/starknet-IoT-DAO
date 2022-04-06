@@ -120,21 +120,7 @@ const Header = function () {
           <div className='logo px-0'>
             <div className='navbar-title navbar-item'>
               <NavLink to="/">
-                <img
-                  src='./img/pebblewhite2.png'
-                  className="img-fluid d-block"
-                  alt="#"
-                />
-                <img
-                  src='./img/pebblewhite2.png'
-                  className="img-fluid d-3"
-                  alt="#"
-                />
-                <img
-                  src='./img/pebblewhite2.png'
-                  className="img-fluid d-none"
-                  alt="#"
-                />
+                
               </NavLink>
             </div>
           </div>
